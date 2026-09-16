@@ -20,21 +20,19 @@ jobs:
 
       - name: Configurar Android SDK
         uses: android-actions/setup-android@v4
-
-      - name: Instalar Android SDK 34
-        run: |
-          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+        with:
+          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
 
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.2'
 
-      - name: Comprobar Java
-        run: java -version
-
-      - name: Comprobar Gradle
-        run: gradle --version
+      - name: Comprobar entorno
+        run: |
+          java -version
+          gradle --version
+          sdkmanager --version
 
       - name: Compilar LUXION
         run: gradle assembleDebug --stacktrace
