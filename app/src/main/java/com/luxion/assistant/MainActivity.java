@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.speech.RecognitionListener;
@@ -11,7 +12,6 @@ import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -36,6 +36,8 @@ public class MainActivity extends Activity {
 
         crearInterfaz();
         inicializarVoz();
+
+        iniciarBotonFlotante();
 
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -103,13 +105,14 @@ public class MainActivity extends Activity {
 
             if (status == TextToSpeech.SUCCESS) {
 
-                int resultadoIdioma =
-                        textToSpeech.setLanguage(Locale.getDefault());
+                int idioma = textToSpeech.setLanguage(
+                        new Locale("es", "ES")
+                );
 
-                if (resultadoIdioma == TextToSpeech.LANG_MISSING_DATA ||
-                        resultadoIdioma == TextToSpeech.LANG_NOT_SUPPORTED) {
+                if (idioma == TextToSpeech.LANG_MISSING_DATA ||
+                        idioma == TextToSpeech.LANG_NOT_SUPPORTED) {
 
-                    textToSpeech.setLanguage(new Locale("es", "ES"));
+                    textToSpeech.setLanguage(Locale.getDefault());
                 }
             }
         });
@@ -120,73 +123,85 @@ public class MainActivity extends Activity {
             return;
         }
 
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
+        speechRecognizer =
+                SpeechRecognizer.createSpeechRecognizer(this);
 
-        speechRecognizer.setRecognitionListener(new RecognitionListener() {
+        speechRecognizer.setRecognitionListener(
+                new RecognitionListener() {
 
-            @Override
-            public void onReadyForSpeech(Bundle params) {
+                    @Override
+                    public void onReadyForSpeech(Bundle params) {
 
-                estado.setText("🎙 Escuchando...");
-                boton.setText("🔴 ESCUCHANDO");
-            }
+                        estado.setText("🎙 Escuchando...");
+                        boton.setText("🔴 ESCUCHANDO");
+                    }
 
-            @Override
-            public void onBeginningOfSpeech() {
+                    @Override
+                    public void onBeginningOfSpeech() {
 
-                estado.setText("🎙 Te escucho...");
-            }
+                        estado.setText("🎙 Te escucho...");
+                    }
 
-            @Override
-            public void onRmsChanged(float rmsdB) {
-            }
+                    @Override
+                    public void onRmsChanged(float rmsdB) {
+                    }
 
-            @Override
-            public void onBufferReceived(byte[] buffer) {
-            }
+                    @Override
+                    public void onBufferReceived(byte[] buffer) {
+                    }
 
-            @Override
-            public void onEndOfSpeech() {
+                    @Override
+                    public void onEndOfSpeech() {
 
-                estado.setText("Procesando...");
-                boton.setText("🎙 ACTIVAR LUXION");
-            }
+                        estado.setText("Procesando...");
+                        boton.setText("🎙 ACTIVAR LUXION");
+                    }
 
-            @Override
-            public void onError(int error) {
+                    @Override
+                    public void onError(int error) {
 
-                estado.setText("No entendí. Intenta nuevamente.");
-                boton.setText("🎙 ACTIVAR LUXION");
-            }
-
-            @Override
-            public void onResults(Bundle results) {
-
-                ArrayList<String> resultados =
-                        results.getStringArrayList(
-                                SpeechRecognizer.RESULTS_RECOGNITION
+                        estado.setText(
+                                "No entendí. Intenta nuevamente."
                         );
 
-                if (resultados != null && !resultados.isEmpty()) {
+                        boton.setText("🎙 ACTIVAR LUXION");
+                    }
 
-                    String texto = resultados.get(0);
+                    @Override
+                    public void onResults(Bundle results) {
 
-                    resultado.setText("Tú dijiste:\n" + texto);
+                        ArrayList<String> resultados =
+                                results.getStringArrayList(
+                                        SpeechRecognizer.RESULTS_RECOGNITION
+                                );
 
-                    procesarComando(texto);
+                        if (resultados != null &&
+                                !resultados.isEmpty()) {
+
+                            String texto = resultados.get(0);
+
+                            resultado.setText(
+                                    "Tú dijiste:\n" + texto
+                            );
+
+                            procesarComando(texto);
+                        }
+
+                        boton.setText("🎙 ACTIVAR LUXION");
+                    }
+
+                    @Override
+                    public void onPartialResults(
+                            Bundle partialResults) {
+                    }
+
+                    @Override
+                    public void onEvent(
+                            int eventType,
+                            Bundle params) {
+                    }
                 }
-
-                boton.setText("🎙 ACTIVAR LUXION");
-            }
-
-            @Override
-            public void onPartialResults(Bundle partialResults) {
-            }
-
-            @Override
-            public void onEvent(int eventType, Bundle params) {
-            }
-        });
+        );
     }
 
     private void escuchar() {
@@ -245,12 +260,14 @@ public class MainActivity extends Activity {
                 comando.contains("guasap")) {
 
             hablar("Abriendo WhatsApp.");
+
             abrirAplicacion(
                     new String[]{
                             "com.whatsapp",
                             "com.whatsapp.w4b"
                     }
             );
+
             return;
         }
 
@@ -259,11 +276,13 @@ public class MainActivity extends Activity {
                 comando.contains("email")) {
 
             hablar("Abriendo Gmail.");
+
             abrirAplicacion(
                     new String[]{
                             "com.google.android.gm"
                     }
             );
+
             return;
         }
 
@@ -271,11 +290,13 @@ public class MainActivity extends Activity {
                 comando.contains("you tube")) {
 
             hablar("Abriendo YouTube.");
+
             abrirAplicacion(
                     new String[]{
                             "com.google.android.youtube"
                     }
             );
+
             return;
         }
 
@@ -283,57 +304,66 @@ public class MainActivity extends Activity {
                 comando.contains("tik tok")) {
 
             hablar("Abriendo TikTok.");
+
             abrirAplicacion(
                     new String[]{
                             "com.zhiliaoapp.musically",
                             "com.ss.android.ugc.trill"
                     }
             );
+
             return;
         }
 
-        if (comando.contains("instagram") ||
-                comando.contains("instagram")) {
+        if (comando.contains("instagram")) {
 
             hablar("Abriendo Instagram.");
+
             abrirAplicacion(
                     new String[]{
                             "com.instagram.android"
                     }
             );
+
             return;
         }
 
         if (comando.contains("facebook")) {
 
             hablar("Abriendo Facebook.");
+
             abrirAplicacion(
                     new String[]{
                             "com.facebook.katana"
                     }
             );
+
             return;
         }
 
         if (comando.contains("telegram")) {
 
             hablar("Abriendo Telegram.");
+
             abrirAplicacion(
                     new String[]{
                             "org.telegram.messenger"
                     }
             );
+
             return;
         }
 
         if (comando.contains("spotify")) {
 
             hablar("Abriendo Spotify.");
+
             abrirAplicacion(
                     new String[]{
                             "com.spotify.music"
                     }
             );
+
             return;
         }
 
@@ -341,11 +371,13 @@ public class MainActivity extends Activity {
                 comando.contains("navegador")) {
 
             hablar("Abriendo Chrome.");
+
             abrirAplicacion(
                     new String[]{
                             "com.android.chrome"
                     }
             );
+
             return;
         }
 
@@ -353,11 +385,13 @@ public class MainActivity extends Activity {
                 comando.contains("google maps")) {
 
             hablar("Abriendo Google Maps.");
+
             abrirAplicacion(
                     new String[]{
                             "com.google.android.apps.maps"
                     }
             );
+
             return;
         }
 
@@ -366,7 +400,9 @@ public class MainActivity extends Activity {
                 comando.contains("configuracion")) {
 
             hablar("Abriendo configuración.");
+
             abrirConfiguracion();
+
             return;
         }
 
@@ -374,14 +410,18 @@ public class MainActivity extends Activity {
                 comando.contains("camara")) {
 
             hablar("Abriendo cámara.");
+
             abrirCamara();
+
             return;
         }
 
         if (comando.contains("contactos")) {
 
             hablar("Abriendo contactos.");
+
             abrirContactos();
+
             return;
         }
 
@@ -389,11 +429,13 @@ public class MainActivity extends Activity {
                 comando.contains("tienda")) {
 
             hablar("Abriendo Play Store.");
+
             abrirAplicacion(
                     new String[]{
                             "com.android.vending"
                     }
             );
+
             return;
         }
 
@@ -410,7 +452,9 @@ public class MainActivity extends Activity {
 
                 Intent intent =
                         getPackageManager()
-                                .getLaunchIntentForPackage(paquete);
+                                .getLaunchIntentForPackage(
+                                        paquete
+                                );
 
                 if (intent != null) {
 
@@ -420,7 +464,10 @@ public class MainActivity extends Activity {
 
                     startActivity(intent);
 
-                    estado.setText("Aplicación abierta");
+                    estado.setText(
+                            "Aplicación abierta"
+                    );
+
                     return;
                 }
 
@@ -428,8 +475,13 @@ public class MainActivity extends Activity {
             }
         }
 
-        hablar("No encontré esa aplicación instalada.");
-        estado.setText("Aplicación no encontrada");
+        hablar(
+                "No encontré esa aplicación instalada."
+        );
+
+        estado.setText(
+                "Aplicación no encontrada"
+        );
     }
 
     private void abrirConfiguracion() {
@@ -437,13 +489,17 @@ public class MainActivity extends Activity {
         try {
 
             Intent intent =
-                    new Intent(Settings.ACTION_SETTINGS);
+                    new Intent(
+                            Settings.ACTION_SETTINGS
+                    );
 
             startActivity(intent);
 
         } catch (Exception e) {
 
-            hablar("No pude abrir configuración.");
+            hablar(
+                    "No pude abrir configuración."
+            );
         }
     }
 
@@ -453,14 +509,17 @@ public class MainActivity extends Activity {
 
             Intent intent =
                     new Intent(
-                            android.provider.MediaStore.ACTION_IMAGE_CAPTURE
+                            android.provider.MediaStore
+                                    .ACTION_IMAGE_CAPTURE
                     );
 
             startActivity(intent);
 
         } catch (Exception e) {
 
-            hablar("No pude abrir la cámara.");
+            hablar(
+                    "No pude abrir la cámara."
+            );
         }
     }
 
@@ -471,14 +530,17 @@ public class MainActivity extends Activity {
             Intent intent =
                     new Intent(
                             Intent.ACTION_VIEW,
-                            android.provider.ContactsContract.Contacts.CONTENT_URI
+                            android.provider.ContactsContract
+                                    .Contacts.CONTENT_URI
                     );
 
             startActivity(intent);
 
         } catch (Exception e) {
 
-            hablar("No pude abrir los contactos.");
+            hablar(
+                    "No pude abrir los contactos."
+            );
         }
     }
 
@@ -491,6 +553,75 @@ public class MainActivity extends Activity {
                     TextToSpeech.QUEUE_FLUSH,
                     null,
                     "LUXION"
+            );
+        }
+    }
+
+    private void iniciarBotonFlotante() {
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+
+            if (!Settings.canDrawOverlays(this)) {
+
+                estado.setText(
+                        "Activa el permiso del botón flotante"
+                );
+
+                try {
+
+                    Intent intent =
+                            new Intent(
+                                    Settings
+                                            .ACTION_MANAGE_OVERLAY_PERMISSION,
+                                    android.net.Uri.parse(
+                                            "package:" +
+                                            getPackageName()
+                                    )
+                            );
+
+                    startActivity(intent);
+
+                } catch (Exception e) {
+
+                    Intent intent =
+                            new Intent(
+                                    Settings
+                                            .ACTION_MANAGE_OVERLAY_PERMISSION
+                            );
+
+                    startActivity(intent);
+                }
+
+                return;
+            }
+        }
+
+        Intent servicio =
+                new Intent(
+                        this,
+                        FloatingService.class
+                );
+
+        try {
+
+            if (Build.VERSION.SDK_INT >=
+                    Build.VERSION_CODES.O) {
+
+                startForegroundService(servicio);
+
+            } else {
+
+                startService(servicio);
+            }
+
+            estado.setText(
+                    "LUXION flotante activo"
+            );
+
+        } catch (Exception e) {
+
+            estado.setText(
+                    "No se pudo iniciar el botón flotante"
             );
         }
     }
