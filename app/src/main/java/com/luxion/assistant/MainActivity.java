@@ -38,29 +38,74 @@ public class MainActivity extends Activity {
         crearInterfaz();
         inicializarVoz();
 
-        if (checkSelfPermission(
-                Manifest.permission.RECORD_AUDIO)
-                != PackageManager.PERMISSION_GRANTED) {
+        comprobarPermisoMicrofono();
 
-            requestPermissions(
-                    new String[]{
-                            Manifest.permission.RECORD_AUDIO
-                    },
-                    AUDIO_PERMISSION
-            );
-        }
+        procesarIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+
+        setIntent(intent);
+
+        procesarIntent(intent);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
 
-        /*
-         * Cada vez que LUXION vuelve a primer plano,
-         * comprobamos si el permiso de ventana flotante
-         * ya fue concedido.
-         */
         iniciarBotonFlotante();
+    }
+
+    private void procesarIntent(Intent intent) {
+
+        if (intent == null) {
+            return;
+        }
+
+        boolean escuchar =
+                intent.getBooleanExtra(
+                        "LUXION_ESCCHAR",
+                        false
+                );
+
+        if (escuchar) {
+
+            intent.removeExtra(
+                    "LUXION_ESCCHAR"
+            );
+
+            /*
+             * Esperamos un momento para que la actividad
+             * esté completamente preparada antes de
+             * activar el reconocimiento.
+             */
+            boton.postDelayed(
+                    () -> escuchar(),
+                    350
+            );
+        }
+    }
+
+    private void comprobarPermisoMicrofono() {
+
+        if (Build.VERSION.SDK_INT >=
+                Build.VERSION_CODES.M) {
+
+            if (checkSelfPermission(
+                    Manifest.permission.RECORD_AUDIO)
+                    != PackageManager.PERMISSION_GRANTED) {
+
+                requestPermissions(
+                        new String[]{
+                                Manifest.permission.RECORD_AUDIO
+                        },
+                        AUDIO_PERMISSION
+                );
+            }
+        }
     }
 
     private void crearInterfaz() {
@@ -72,7 +117,9 @@ public class MainActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
-        layout.setGravity(Gravity.CENTER);
+        layout.setGravity(
+                Gravity.CENTER
+        );
 
         layout.setPadding(
                 40,
@@ -90,8 +137,13 @@ public class MainActivity extends Activity {
 
         titulo.setText("LUXION");
         titulo.setTextSize(36);
-        titulo.setTextColor(0xFFFFFFFF);
-        titulo.setGravity(Gravity.CENTER);
+        titulo.setTextColor(
+                0xFFFFFFFF
+        );
+
+        titulo.setGravity(
+                Gravity.CENTER
+        );
 
         TextView subtitulo =
                 new TextView(this);
@@ -101,8 +153,13 @@ public class MainActivity extends Activity {
         );
 
         subtitulo.setTextSize(16);
-        subtitulo.setTextColor(0xFFAAAAAA);
-        subtitulo.setGravity(Gravity.CENTER);
+        subtitulo.setTextColor(
+                0xFFAAAAAA
+        );
+
+        subtitulo.setGravity(
+                Gravity.CENTER
+        );
 
         estado =
                 new TextView(this);
@@ -112,8 +169,13 @@ public class MainActivity extends Activity {
         );
 
         estado.setTextSize(18);
-        estado.setTextColor(0xFFFFFFFF);
-        estado.setGravity(Gravity.CENTER);
+        estado.setTextColor(
+                0xFFFFFFFF
+        );
+
+        estado.setGravity(
+                Gravity.CENTER
+        );
 
         estado.setPadding(
                 0,
@@ -130,8 +192,13 @@ public class MainActivity extends Activity {
         );
 
         resultado.setTextSize(17);
-        resultado.setTextColor(0xFFCCCCCC);
-        resultado.setGravity(Gravity.CENTER);
+        resultado.setTextColor(
+                0xFFCCCCCC
+        );
+
+        resultado.setGravity(
+                Gravity.CENTER
+        );
 
         resultado.setPadding(
                 0,
@@ -181,7 +248,8 @@ public class MainActivity extends Activity {
                                         );
 
                                 if (idioma ==
-                                        TextToSpeech.LANG_MISSING_DATA
+                                        TextToSpeech
+                                                .LANG_MISSING_DATA
                                         ||
                                         idioma ==
                                         TextToSpeech
@@ -207,7 +275,9 @@ public class MainActivity extends Activity {
 
         speechRecognizer =
                 SpeechRecognizer
-                        .createSpeechRecognizer(this);
+                        .createSpeechRecognizer(
+                                this
+                        );
 
         speechRecognizer.setRecognitionListener(
                 new RecognitionListener() {
@@ -290,7 +360,9 @@ public class MainActivity extends Activity {
                                     texto
                             );
 
-                            procesarComando(texto);
+                            procesarComando(
+                                    texto
+                            );
                         }
 
                         boton.setText(
@@ -314,23 +386,37 @@ public class MainActivity extends Activity {
 
     private void escuchar() {
 
-        if (checkSelfPermission(
-                Manifest.permission.RECORD_AUDIO)
-                != PackageManager.PERMISSION_GRANTED) {
+        if (Build.VERSION.SDK_INT >=
+                Build.VERSION_CODES.M) {
 
-            requestPermissions(
-                    new String[]{
-                            Manifest.permission.RECORD_AUDIO
-                    },
-                    AUDIO_PERMISSION
-            );
+            if (checkSelfPermission(
+                    Manifest.permission.RECORD_AUDIO)
+                    != PackageManager.PERMISSION_GRANTED) {
 
-            return;
+                comprobarPermisoMicrofono();
+                return;
+            }
         }
 
         if (speechRecognizer == null) {
 
             inicializarVoz();
+        }
+
+        if (speechRecognizer == null) {
+
+            estado.setText(
+                    "Reconocimiento de voz no disponible"
+            );
+
+            return;
+        }
+
+        try {
+
+            speechRecognizer.cancel();
+
+        } catch (Exception ignored) {
         }
 
         Intent intent =
@@ -360,7 +446,18 @@ public class MainActivity extends Activity {
                 true
         );
 
-        speechRecognizer.startListening(intent);
+        try {
+
+            speechRecognizer.startListening(
+                    intent
+            );
+
+        } catch (Exception e) {
+
+            estado.setText(
+                    "No se pudo activar el micrófono"
+            );
+        }
     }
 
     private void procesarComando(
@@ -710,10 +807,6 @@ public class MainActivity extends Activity {
 
     private void iniciarBotonFlotante() {
 
-        /*
-         * Android 6+ necesita permiso para
-         * dibujar sobre otras aplicaciones.
-         */
         if (Build.VERSION.SDK_INT >=
                 Build.VERSION_CODES.M) {
 
@@ -723,44 +816,10 @@ public class MainActivity extends Activity {
                         "Activa el permiso del botón flotante"
                 );
 
-                try {
-
-                    Intent intent =
-                            new Intent(
-                                    Settings
-                                            .ACTION_MANAGE_OVERLAY_PERMISSION,
-                                    Uri.parse(
-                                            "package:" +
-                                            getPackageName()
-                                    )
-                            );
-
-                    startActivity(intent);
-
-                } catch (Exception e) {
-
-                    try {
-
-                        Intent intent =
-                                new Intent(
-                                        Settings
-                                                .ACTION_MANAGE_OVERLAY_PERMISSION
-                                );
-
-                        startActivity(intent);
-
-                    } catch (Exception ignored) {
-                    }
-                }
-
                 return;
             }
         }
 
-        /*
-         * El permiso ya está concedido.
-         * Ahora iniciamos el servicio.
-         */
         Intent servicio =
                 new Intent(
                         this,
