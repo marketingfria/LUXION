@@ -95,7 +95,6 @@ public class FloatingService extends Service {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
 
             if (!Settings.canDrawOverlays(this)) {
-
                 stopSelf();
                 return;
             }
@@ -205,7 +204,6 @@ public class FloatingService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-
         return null;
     }
 }
