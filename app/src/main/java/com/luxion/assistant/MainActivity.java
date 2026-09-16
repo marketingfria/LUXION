@@ -4,12 +4,14 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
-import android.graphics.Color;
-import android.graphics.Typeface;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
@@ -38,8 +40,6 @@ public class MainActivity extends Activity {
         crearInterfaz();
         prepararReconocimiento();
 
-        // Si el permiso ya fue concedido anteriormente,
-        // no se vuelve a solicitar.
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
                 == PackageManager.PERMISSION_GRANTED) {
 
@@ -60,10 +60,6 @@ public class MainActivity extends Activity {
         mainLayout.setPadding(40, 40, 40, 40);
         mainLayout.setBackgroundColor(Color.rgb(10, 10, 18));
 
-        // -------------------------
-        // TÍTULO
-        // -------------------------
-
         TextView title = new TextView(this);
 
         title.setText("LUXION");
@@ -72,10 +68,6 @@ public class MainActivity extends Activity {
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         title.setGravity(Gravity.CENTER);
 
-        // -------------------------
-        // SUBTÍTULO
-        // -------------------------
-
         TextView subtitle = new TextView(this);
 
         subtitle.setText("AI Android Assistant");
@@ -83,35 +75,21 @@ public class MainActivity extends Activity {
         subtitle.setTextColor(Color.LTGRAY);
         subtitle.setGravity(Gravity.CENTER);
 
-        // -------------------------
-        // ESTADO
-        // -------------------------
-
         statusText = new TextView(this);
 
         statusText.setText("Preparando LUXION...");
         statusText.setTextSize(17);
         statusText.setTextColor(Color.LTGRAY);
         statusText.setGravity(Gravity.CENTER);
-
         statusText.setPadding(0, 50, 0, 25);
-
-        // -------------------------
-        // RESULTADO DE VOZ
-        // -------------------------
 
         resultText = new TextView(this);
 
-        resultText.setText("Aquí aparecerá lo que digas");
+        resultText.setText("Di un comando");
         resultText.setTextSize(20);
         resultText.setTextColor(Color.WHITE);
         resultText.setGravity(Gravity.CENTER);
-
         resultText.setPadding(20, 20, 20, 30);
-
-        // -------------------------
-        // BOTÓN
-        // -------------------------
 
         Button voiceButton = new Button(this);
 
@@ -126,10 +104,6 @@ public class MainActivity extends Activity {
                 activarMicrofono();
             }
         });
-
-        // -------------------------
-        // AGREGAR ELEMENTOS
-        // -------------------------
 
         mainLayout.addView(title);
         mainLayout.addView(subtitle);
@@ -151,7 +125,8 @@ public class MainActivity extends Activity {
             return;
         }
 
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
+        speechRecognizer =
+                SpeechRecognizer.createSpeechRecognizer(this);
 
         speechRecognizer.setRecognitionListener(
                 new RecognitionListener() {
@@ -176,12 +151,10 @@ public class MainActivity extends Activity {
 
                     @Override
                     public void onRmsChanged(float rmsdB) {
-                        // No necesitamos utilizar el nivel de sonido.
                     }
 
                     @Override
                     public void onBufferReceived(byte[] buffer) {
-                        // No necesitamos utilizar el audio directamente.
                     }
 
                     @Override
@@ -190,7 +163,7 @@ public class MainActivity extends Activity {
                         listening = false;
 
                         statusText.setText(
-                                "Procesando voz..."
+                                "Procesando comando..."
                         );
                     }
 
@@ -207,14 +180,6 @@ public class MainActivity extends Activity {
                                 mensaje = "Error de audio";
                                 break;
 
-                            case SpeechRecognizer.ERROR_CLIENT:
-                                mensaje = "Error del reconocimiento";
-                                break;
-
-                            case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
-                                mensaje = "Permiso de micrófono no concedido";
-                                break;
-
                             case SpeechRecognizer.ERROR_NETWORK:
                                 mensaje = "Error de red";
                                 break;
@@ -224,15 +189,11 @@ public class MainActivity extends Activity {
                                 break;
 
                             case SpeechRecognizer.ERROR_NO_MATCH:
-                                mensaje = "No entendí lo que dijiste";
+                                mensaje = "No entendí el comando";
                                 break;
 
                             case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
                                 mensaje = "El reconocimiento está ocupado";
-                                break;
-
-                            case SpeechRecognizer.ERROR_SERVER:
-                                mensaje = "Error del servicio de voz";
                                 break;
 
                             case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
@@ -240,7 +201,7 @@ public class MainActivity extends Activity {
                                 break;
 
                             default:
-                                mensaje = "No pude reconocer la voz";
+                                mensaje = "No pude reconocer el comando";
                                 break;
                         }
 
@@ -257,29 +218,28 @@ public class MainActivity extends Activity {
                                         SpeechRecognizer.RESULTS_RECOGNITION
                                 );
 
-                        if (resultados != null &&
-                                !resultados.isEmpty()) {
-
-                            String texto = resultados.get(0);
-
-                            resultText.setText(
-                                    "Tú dijiste:\n" + texto
-                            );
+                        if (resultados == null ||
+                                resultados.isEmpty()) {
 
                             statusText.setText(
-                                    "LUXION te ha escuchado"
+                                    "No entendí el comando"
                             );
 
-                        } else {
-
-                            statusText.setText(
-                                    "No se recibió ninguna frase"
-                            );
+                            return;
                         }
+
+                        String texto = resultados.get(0);
+
+                        resultText.setText(
+                                "Tú dijiste:\n" + texto
+                        );
+
+                        ejecutarComando(texto);
                     }
 
                     @Override
-                    public void onPartialResults(Bundle partialResults) {
+                    public void onPartialResults(
+                            Bundle partialResults) {
 
                         ArrayList<String> resultados =
                                 partialResults.getStringArrayList(
@@ -299,7 +259,6 @@ public class MainActivity extends Activity {
                     public void onEvent(
                             int eventType,
                             Bundle params) {
-                        // No necesitamos eventos adicionales.
                     }
                 }
         );
@@ -331,7 +290,6 @@ public class MainActivity extends Activity {
 
     private void activarMicrofono() {
 
-        // Comprobar permiso
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
                 != PackageManager.PERMISSION_GRANTED) {
 
@@ -358,7 +316,7 @@ public class MainActivity extends Activity {
         if (speechRecognizer == null) {
 
             statusText.setText(
-                    "El reconocimiento de voz no está disponible"
+                    "Reconocimiento no disponible"
             );
 
             return;
@@ -390,6 +348,147 @@ public class MainActivity extends Activity {
         );
     }
 
+    private void ejecutarComando(String comando) {
+
+        String texto = comando.toLowerCase(Locale.ROOT).trim();
+
+        // -------------------------
+        // YOUTUBE
+        // -------------------------
+
+        if (texto.contains("youtube")) {
+
+            abrirAplicacion(
+                    "com.google.android.youtube",
+                    "https://www.youtube.com"
+            );
+
+            return;
+        }
+
+        // -------------------------
+        // WHATSAPP
+        // -------------------------
+
+        if (texto.contains("whatsapp")) {
+
+            abrirAplicacion(
+                    "com.whatsapp",
+                    "https://www.whatsapp.com"
+            );
+
+            return;
+        }
+
+        // -------------------------
+        // CHROME
+        // -------------------------
+
+        if (texto.contains("chrome")) {
+
+            abrirAplicacion(
+                    "com.android.chrome",
+                    "https://www.google.com"
+            );
+
+            return;
+        }
+
+        // -------------------------
+        // AJUSTES
+        // -------------------------
+
+        if (texto.contains("ajustes") ||
+                texto.contains("configuración") ||
+                texto.contains("configuracion")) {
+
+            try {
+
+                Intent intent =
+                        new Intent(Settings.ACTION_SETTINGS);
+
+                startActivity(intent);
+
+                statusText.setText(
+                        "Abriendo ajustes..."
+                );
+
+            } catch (Exception e) {
+
+                statusText.setText(
+                        "No pude abrir los ajustes"
+                );
+            }
+
+            return;
+        }
+
+        // -------------------------
+        // COMANDO NO RECONOCIDO
+        // -------------------------
+
+        statusText.setText(
+                "No conozco ese comando todavía"
+        );
+    }
+
+    private void abrirAplicacion(
+            String paquete,
+            String paginaWeb) {
+
+        try {
+
+            PackageManager packageManager =
+                    getPackageManager();
+
+            Intent intent =
+                    packageManager.getLaunchIntentForPackage(
+                            paquete
+                    );
+
+            if (intent != null) {
+
+                startActivity(intent);
+
+                statusText.setText(
+                        "Abriendo..."
+                );
+
+            } else {
+
+                abrirWeb(paginaWeb);
+            }
+
+        } catch (Exception e) {
+
+            abrirWeb(paginaWeb);
+        }
+    }
+
+    private void abrirWeb(String url) {
+
+        try {
+
+            Intent intent =
+                    new Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse(url)
+                    );
+
+            startActivity(intent);
+
+            statusText.setText(
+                    "Abriendo en el navegador..."
+            );
+
+        } catch (Exception e) {
+
+            statusText.setText(
+                    "No pude abrir el enlace"
+            );
+        }
+    }
+
     @Override
     public void onRequestPermissionsResult(
             int requestCode,
@@ -412,8 +511,6 @@ public class MainActivity extends Activity {
                         "Permiso concedido. LUXION está listo."
                 );
 
-                // Después de conceder el permiso,
-                // iniciamos el reconocimiento.
                 iniciarEscucha();
 
             } else {
