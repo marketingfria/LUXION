@@ -50,7 +50,9 @@ public class FloatingService extends Service {
             );
 
             NotificationManager manager =
-                    getSystemService(NotificationManager.class);
+                    getSystemService(
+                            NotificationManager.class
+                    );
 
             if (manager != null) {
                 manager.createNotificationChannel(channel);
@@ -92,9 +94,11 @@ public class FloatingService extends Service {
 
     private void crearBotonFlotante() {
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (Build.VERSION.SDK_INT >=
+                Build.VERSION_CODES.M) {
 
             if (!Settings.canDrawOverlays(this)) {
+
                 stopSelf();
                 return;
             }
@@ -115,7 +119,8 @@ public class FloatingService extends Service {
 
         int tipoVentana;
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >=
+                Build.VERSION_CODES.O) {
 
             tipoVentana =
                     WindowManager.LayoutParams
@@ -132,7 +137,8 @@ public class FloatingService extends Service {
                         70,
                         70,
                         tipoVentana,
-                        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                        WindowManager.LayoutParams
+                                .FLAG_NOT_FOCUSABLE,
                         PixelFormat.TRANSLUCENT
                 );
 
@@ -204,6 +210,7 @@ public class FloatingService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
+
         return null;
     }
 }
