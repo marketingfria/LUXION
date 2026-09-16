@@ -8,23 +8,33 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.Settings;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
+import android.speech.tts.TextToSpeech;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+import java.util.Locale;
+
 public class FloatingService extends Service {
 
-    private static final String CHANNEL_ID =
-            "LUXION_SERVICE";
+    private static final String CHANNEL_ID = "LUXION_SERVICE";
+    private static final int NOTIFICATION_ID = 1001;
 
     private WindowManager windowManager;
     private TextView floatingButton;
-
     private WindowManager.LayoutParams params;
+
+    private SpeechRecognizer speechRecognizer;
+    private TextToSpeech textToSpeech;
 
     private float toqueInicialX;
     private float toqueInicialY;
@@ -33,6 +43,7 @@ public class FloatingService extends Service {
     private int posicionInicialY;
 
     private boolean seEstaMoviendo = false;
+    private boolean escuchando = false;
 
     @Override
     public void onCreate() {
@@ -40,19 +51,17 @@ public class FloatingService extends Service {
 
         crearCanalNotificacion();
         iniciarServicioForeground();
+        inicializarVoz();
 
         windowManager =
-                (WindowManager) getSystemService(
-                        WINDOW_SERVICE
-                );
+                (WindowManager) getSystemService(WINDOW_SERVICE);
 
         crearBotonFlotante();
     }
 
     private void crearCanalNotificacion() {
 
-        if (Build.VERSION.SDK_INT >=
-                Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
             NotificationChannel channel =
                     new NotificationChannel(
@@ -62,18 +71,14 @@ public class FloatingService extends Service {
                     );
 
             channel.setDescription(
-                    "Servicio del asistente LUXION"
+                    "Servicio flotante de LUXION"
             );
 
             NotificationManager manager =
-                    getSystemService(
-                            NotificationManager.class
-                    );
+                    getSystemService(NotificationManager.class);
 
             if (manager != null) {
-                manager.createNotificationChannel(
-                        channel
-                );
+                manager.createNotificationChannel(channel);
             }
         }
     }
@@ -82,8 +87,7 @@ public class FloatingService extends Service {
 
         Notification.Builder builder;
 
-        if (Build.VERSION.SDK_INT >=
-                Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
             builder =
                     new Notification.Builder(
@@ -98,9 +102,7 @@ public class FloatingService extends Service {
         }
 
         builder
-                .setContentTitle(
-                        "LUXION activo"
-                )
+                .setContentTitle("LUXION activo")
                 .setContentText(
                         "Toca la L para hablar con LUXION"
                 )
@@ -110,9 +112,147 @@ public class FloatingService extends Service {
                 .setOngoing(true);
 
         startForeground(
-                1001,
+                NOTIFICATION_ID,
                 builder.build()
         );
+    }
+
+    private void inicializarVoz() {
+
+        if (!SpeechRecognizer
+                .isRecognitionAvailable(this)) {
+
+            return;
+        }
+
+        textToSpeech =
+                new TextToSpeech(
+                        this,
+                        status -> {
+
+                            if (status ==
+                                    TextToSpeech.SUCCESS) {
+
+                                textToSpeech.setLanguage(
+                                        new Locale(
+                                                "es",
+                                                "ES"
+                                        )
+                                );
+                            }
+                        }
+                );
+
+        speechRecognizer =
+                SpeechRecognizer
+                        .createSpeechRecognizer(this);
+
+        speechRecognizer.setRecognitionListener(
+                new RecognitionListener() {
+
+                    @Override
+                    public void onReadyForSpeech(
+                            Bundle params) {
+
+                        escuchando = true;
+
+                        actualizarBoton(
+                                "🎙"
+                        );
+                    }
+
+                    @Override
+                    public void onBeginningOfSpeech() {
+
+                        actualizarBoton(
+                                "🔴"
+                        );
+                    }
+
+                    @Override
+                    public void onRmsChanged(
+                            float rmsdB) {
+                    }
+
+                    @Override
+                    public void onBufferReceived(
+                            byte[] buffer) {
+                    }
+
+                    @Override
+                    public void onEndOfSpeech() {
+
+                        escuchando = false;
+
+                        actualizarBoton(
+                                "L"
+                        );
+                    }
+
+                    @Override
+                    public void onError(
+                            int error) {
+
+                        escuchando = false;
+
+                        actualizarBoton(
+                                "L"
+                        );
+                    }
+
+                    @Override
+                    public void onResults(
+                            Bundle results) {
+
+                        escuchando = false;
+
+                        actualizarBoton(
+                                "L"
+                        );
+
+                        ArrayList<String> resultados =
+                                results.getStringArrayList(
+                                        SpeechRecognizer
+                                                .RESULTS_RECOGNITION
+                                );
+
+                        if (resultados != null &&
+                                !resultados.isEmpty()) {
+
+                            String texto =
+                                    resultados.get(0);
+
+                            procesarComando(texto);
+                        }
+                    }
+
+                    @Override
+                    public void onPartialResults(
+                            Bundle partialResults) {
+                    }
+
+                    @Override
+                    public void onEvent(
+                            int eventType,
+                            Bundle params) {
+                    }
+                }
+        );
+    }
+
+    private void actualizarBoton(
+            String texto) {
+
+        if (floatingButton == null) {
+            return;
+        }
+
+        try {
+
+            floatingButton.setText(texto);
+
+        } catch (Exception ignored) {
+        }
     }
 
     private void crearBotonFlotante() {
@@ -141,7 +281,11 @@ public class FloatingService extends Service {
         );
 
         floatingButton.setBackgroundColor(
-                Color.rgb(30, 30, 35)
+                Color.rgb(
+                        30,
+                        30,
+                        35
+                )
         );
 
         floatingButton.setElevation(10);
@@ -278,33 +422,442 @@ public class FloatingService extends Service {
 
     private void activarMicrofono() {
 
+        if (speechRecognizer == null) {
+
+            inicializarVoz();
+        }
+
+        if (speechRecognizer == null) {
+
+            hablar(
+                    "El reconocimiento de voz no está disponible."
+            );
+
+            return;
+        }
+
+        if (escuchando) {
+
+            try {
+
+                speechRecognizer.cancel();
+
+            } catch (Exception ignored) {
+            }
+
+            escuchando = false;
+
+            actualizarBoton("L");
+
+            return;
+        }
+
         Intent intent =
                 new Intent(
-                        this,
-                        MainActivity.class
+                        RecognizerIntent
+                                .ACTION_RECOGNIZE_SPEECH
                 );
 
         intent.putExtra(
-                "LUXION_ESCCHAR",
-                true
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent
+                        .LANGUAGE_MODEL_FREE_FORM
         );
 
-        intent.addFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK |
-                Intent.FLAG_ACTIVITY_SINGLE_TOP |
-                Intent.FLAG_ACTIVITY_CLEAR_TOP
+        intent.putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE,
+                "es-ES"
+        );
+
+        intent.putExtra(
+                RecognizerIntent.EXTRA_MAX_RESULTS,
+                3
+        );
+
+        intent.putExtra(
+                RecognizerIntent.EXTRA_PARTIAL_RESULTS,
+                true
         );
 
         try {
 
+            speechRecognizer.startListening(
+                    intent
+            );
+
+        } catch (Exception e) {
+
+            escuchando = false;
+
+            actualizarBoton("L");
+        }
+    }
+
+    private void procesarComando(
+            String texto) {
+
+        String comando =
+                texto
+                        .toLowerCase(Locale.ROOT)
+                        .trim();
+
+        if (comando.contains("whatsapp") ||
+                comando.contains("wasap") ||
+                comando.contains("watsapp") ||
+                comando.contains("guasap")) {
+
+            hablar(
+                    "Abriendo WhatsApp."
+            );
+
+            abrirAplicacion(
+                    new String[]{
+                            "com.whatsapp",
+                            "com.whatsapp.w4b"
+                    }
+            );
+
+            return;
+        }
+
+        if (comando.contains("gmail") ||
+                comando.contains("correo") ||
+                comando.contains("email")) {
+
+            hablar(
+                    "Abriendo Gmail."
+            );
+
+            abrirAplicacion(
+                    new String[]{
+                            "com.google.android.gm"
+                    }
+            );
+
+            return;
+        }
+
+        if (comando.contains("youtube") ||
+                comando.contains("you tube")) {
+
+            hablar(
+                    "Abriendo YouTube."
+            );
+
+            abrirAplicacion(
+                    new String[]{
+                            "com.google.android.youtube"
+                    }
+            );
+
+            return;
+        }
+
+        if (comando.contains("tiktok") ||
+                comando.contains("tik tok")) {
+
+            hablar(
+                    "Abriendo TikTok."
+            );
+
+            abrirAplicacion(
+                    new String[]{
+                            "com.zhiliaoapp.musically",
+                            "com.ss.android.ugc.trill"
+                    }
+            );
+
+            return;
+        }
+
+        if (comando.contains("instagram")) {
+
+            hablar(
+                    "Abriendo Instagram."
+            );
+
+            abrirAplicacion(
+                    new String[]{
+                            "com.instagram.android"
+                    }
+            );
+
+            return;
+        }
+
+        if (comando.contains("facebook")) {
+
+            hablar(
+                    "Abriendo Facebook."
+            );
+
+            abrirAplicacion(
+                    new String[]{
+                            "com.facebook.katana"
+                    }
+            );
+
+            return;
+        }
+
+        if (comando.contains("telegram")) {
+
+            hablar(
+                    "Abriendo Telegram."
+            );
+
+            abrirAplicacion(
+                    new String[]{
+                            "org.telegram.messenger"
+                    }
+            );
+
+            return;
+        }
+
+        if (comando.contains("spotify")) {
+
+            hablar(
+                    "Abriendo Spotify."
+            );
+
+            abrirAplicacion(
+                    new String[]{
+                            "com.spotify.music"
+                    }
+            );
+
+            return;
+        }
+
+        if (comando.contains("chrome") ||
+                comando.contains("navegador")) {
+
+            hablar(
+                    "Abriendo Chrome."
+            );
+
+            abrirAplicacion(
+                    new String[]{
+                            "com.android.chrome"
+                    }
+            );
+
+            return;
+        }
+
+        if (comando.contains("mapas") ||
+                comando.contains("google maps")) {
+
+            hablar(
+                    "Abriendo Google Maps."
+            );
+
+            abrirAplicacion(
+                    new String[]{
+                            "com.google.android.apps.maps"
+                    }
+            );
+
+            return;
+        }
+
+        if (comando.contains("ajustes") ||
+                comando.contains("configuración") ||
+                comando.contains("configuracion")) {
+
+            hablar(
+                    "Abriendo configuración."
+            );
+
+            abrirConfiguracion();
+
+            return;
+        }
+
+        if (comando.contains("cámara") ||
+                comando.contains("camara")) {
+
+            hablar(
+                    "Abriendo cámara."
+            );
+
+            abrirCamara();
+
+            return;
+        }
+
+        if (comando.contains("contactos")) {
+
+            hablar(
+                    "Abriendo contactos."
+            );
+
+            abrirContactos();
+
+            return;
+        }
+
+        if (comando.contains("play store") ||
+                comando.contains("tienda")) {
+
+            hablar(
+                    "Abriendo Play Store."
+            );
+
+            abrirAplicacion(
+                    new String[]{
+                            "com.android.vending"
+                    }
+            );
+
+            return;
+        }
+
+        hablar(
+                "Todavía no conozco ese comando."
+        );
+    }
+
+    private void abrirAplicacion(
+            String[] paquetes) {
+
+        for (String paquete : paquetes) {
+
+            try {
+
+                Intent intent =
+                        getPackageManager()
+                                .getLaunchIntentForPackage(
+                                        paquete
+                                );
+
+                if (intent != null) {
+
+                    intent.addFlags(
+                            Intent.FLAG_ACTIVITY_NEW_TASK
+                    );
+
+                    startActivity(intent);
+
+                    return;
+                }
+
+            } catch (Exception ignored) {
+            }
+        }
+
+        hablar(
+                "No encontré esa aplicación instalada."
+        );
+    }
+
+    private void abrirConfiguracion() {
+
+        try {
+
+            Intent intent =
+                    new Intent(
+                            Settings.ACTION_SETTINGS
+                    );
+
+            intent.addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK
+            );
+
             startActivity(intent);
 
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+
+            hablar(
+                    "No pude abrir configuración."
+            );
+        }
+    }
+
+    private void abrirCamara() {
+
+        try {
+
+            Intent intent =
+                    new Intent(
+                            android.provider.MediaStore
+                                    .ACTION_IMAGE_CAPTURE
+                    );
+
+            intent.addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK
+            );
+
+            startActivity(intent);
+
+        } catch (Exception e) {
+
+            hablar(
+                    "No pude abrir la cámara."
+            );
+        }
+    }
+
+    private void abrirContactos() {
+
+        try {
+
+            Intent intent =
+                    new Intent(
+                            Intent.ACTION_VIEW,
+                            android.provider.ContactsContract
+                                    .Contacts.CONTENT_URI
+                    );
+
+            intent.addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK
+            );
+
+            startActivity(intent);
+
+        } catch (Exception e) {
+
+            hablar(
+                    "No pude abrir los contactos."
+            );
+        }
+    }
+
+    private void hablar(
+            String mensaje) {
+
+        if (textToSpeech != null) {
+
+            textToSpeech.speak(
+                    mensaje,
+                    TextToSpeech.QUEUE_FLUSH,
+                    null,
+                    "LUXION"
+            );
         }
     }
 
     @Override
     public void onDestroy() {
+
+        if (speechRecognizer != null) {
+
+            try {
+                speechRecognizer.cancel();
+            } catch (Exception ignored) {
+            }
+
+            speechRecognizer.destroy();
+            speechRecognizer = null;
+        }
+
+        if (textToSpeech != null) {
+
+            textToSpeech.stop();
+            textToSpeech.shutdown();
+            textToSpeech = null;
+        }
 
         if (floatingButton != null &&
                 windowManager != null) {
