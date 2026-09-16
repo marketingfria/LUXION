@@ -1,0 +1,132 @@
+package com.luxion.assistant;
+
+import android.app.Service;
+import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.PixelFormat;
+import android.os.Build;
+import android.os.IBinder;
+import android.provider.Settings;
+import android.view.Gravity;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.TextView;
+
+public class FloatingService extends Service {
+
+    private WindowManager windowManager;
+    private TextView floatingButton;
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+
+        windowManager =
+                (WindowManager) getSystemService(WINDOW_SERVICE);
+
+        crearBotonFlotante();
+    }
+
+    private void crearBotonFlotante() {
+
+        floatingButton = new TextView(this);
+
+        floatingButton.setText("L");
+        floatingButton.setTextSize(22);
+        floatingButton.setTextColor(Color.WHITE);
+        floatingButton.setGravity(Gravity.CENTER);
+
+        floatingButton.setBackgroundColor(
+                Color.rgb(30, 30, 35)
+        );
+
+        floatingButton.setElevation(10);
+
+        int tipoVentana;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
+            tipoVentana =
+                    WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
+
+        } else {
+
+            tipoVentana =
+                    WindowManager.LayoutParams.TYPE_PHONE;
+        }
+
+        WindowManager.LayoutParams params =
+                new WindowManager.LayoutParams(
+                        70,
+                        70,
+                        tipoVentana,
+                        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                        PixelFormat.TRANSLUCENT
+                );
+
+        params.gravity =
+                Gravity.TOP | Gravity.END;
+
+        params.x = 20;
+        params.y = 300;
+
+        try {
+
+            windowManager.addView(
+                    floatingButton,
+                    params
+            );
+
+        } catch (Exception e) {
+
+            stopSelf();
+            return;
+        }
+
+        floatingButton.setOnClickListener(
+                v -> abrirLuxion()
+        );
+    }
+
+    private void abrirLuxion() {
+
+        Intent intent =
+                new Intent(
+                        this,
+                        MainActivity.class
+                );
+
+        intent.addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK |
+                Intent.FLAG_ACTIVITY_SINGLE_TOP
+        );
+
+        startActivity(intent);
+    }
+
+    @Override
+    public void onDestroy() {
+
+        if (floatingButton != null) {
+
+            try {
+
+                windowManager.removeView(
+                        floatingButton
+                );
+
+            } catch (Exception ignored) {
+            }
+
+            floatingButton = null;
+        }
+
+        super.onDestroy();
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+
+        return null;
+    }
+}
