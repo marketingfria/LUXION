@@ -350,57 +350,252 @@ public class MainActivity extends Activity {
 
     private void ejecutarComando(String comando) {
 
-        String texto = comando.toLowerCase(Locale.ROOT).trim();
+        String texto = comando
+                .toLowerCase(Locale.ROOT)
+                .trim();
 
-        // -------------------------
-        // YOUTUBE
-        // -------------------------
-
-        if (texto.contains("youtube")) {
-
-            abrirAplicacion(
-                    "com.google.android.youtube",
-                    "https://www.youtube.com"
-            );
-
-            return;
-        }
-
-        // -------------------------
         // WHATSAPP
-        // -------------------------
-
-        if (texto.contains("whatsapp")) {
+        if (contiene(texto, "whatsapp", "watsapp", "guasap", "wasap")) {
 
             abrirAplicacion(
-                    "com.whatsapp",
+                    new String[]{
+                            "com.whatsapp",
+                            "com.whatsapp.w4b"
+                    },
                     "https://www.whatsapp.com"
             );
 
             return;
         }
 
-        // -------------------------
-        // CHROME
-        // -------------------------
-
-        if (texto.contains("chrome")) {
+        // YOUTUBE
+        if (contiene(texto, "youtube", "you tube")) {
 
             abrirAplicacion(
-                    "com.android.chrome",
+                    new String[]{
+                            "com.google.android.youtube"
+                    },
+                    "https://www.youtube.com"
+            );
+
+            return;
+        }
+
+        // CHROME
+        if (contiene(texto, "chrome")) {
+
+            abrirAplicacion(
+                    new String[]{
+                            "com.android.chrome"
+                    },
                     "https://www.google.com"
             );
 
             return;
         }
 
-        // -------------------------
-        // AJUSTES
-        // -------------------------
+        // INSTAGRAM
+        if (contiene(texto, "instagram", "insta")) {
 
-        if (texto.contains("ajustes") ||
-                texto.contains("configuración") ||
-                texto.contains("configuracion")) {
+            abrirAplicacion(
+                    new String[]{
+                            "com.instagram.android"
+                    },
+                    "https://www.instagram.com"
+            );
+
+            return;
+        }
+
+        // FACEBOOK
+        if (contiene(texto, "facebook", "facebook")) {
+
+            abrirAplicacion(
+                    new String[]{
+                            "com.facebook.katana"
+                    },
+                    "https://www.facebook.com"
+            );
+
+            return;
+        }
+
+        // TIKTOK
+        if (contiene(texto, "tiktok", "tik tok")) {
+
+            abrirAplicacion(
+                    new String[]{
+                            "com.zhiliaoapp.musically"
+                    },
+                    "https://www.tiktok.com"
+            );
+
+            return;
+        }
+
+        // TELEGRAM
+        if (contiene(texto, "telegram")) {
+
+            abrirAplicacion(
+                    new String[]{
+                            "org.telegram.messenger"
+                    },
+                    "https://telegram.org"
+            );
+
+            return;
+        }
+
+        // SPOTIFY
+        if (contiene(texto, "spotify")) {
+
+            abrirAplicacion(
+                    new String[]{
+                            "com.spotify.music"
+                    },
+                    "https://open.spotify.com"
+            );
+
+            return;
+        }
+
+        // GMAIL
+        if (contiene(texto, "gmail", "correo", "email")) {
+
+            abrirAplicacion(
+                    new String[]{
+                            "com.google.android.gm"
+                    },
+                    "https://mail.google.com"
+            );
+
+            return;
+        }
+
+        // GOOGLE MAPS
+        if (contiene(
+                texto,
+                "google maps",
+                "maps",
+                "mapas"
+        )) {
+
+            abrirAplicacion(
+                    new String[]{
+                            "com.google.android.apps.maps"
+                    },
+                    "https://maps.google.com"
+            );
+
+            return;
+        }
+
+        // CÁMARA
+        if (contiene(
+                texto,
+                "cámara",
+                "camara",
+                "foto"
+        )) {
+
+            try {
+
+                Intent intent =
+                        new Intent(
+                                "android.media.action.IMAGE_CAPTURE"
+                        );
+
+                startActivity(intent);
+
+                statusText.setText(
+                        "Abriendo cámara..."
+                );
+
+            } catch (Exception e) {
+
+                statusText.setText(
+                        "No pude abrir la cámara"
+                );
+            }
+
+            return;
+        }
+
+        // CONTACTOS
+        if (contiene(texto, "contactos", "contacto")) {
+
+            abrirConfiguracion(
+                    android.provider.ContactsContract.Contacts.CONTENT_URI,
+                    "Abriendo contactos..."
+            );
+
+            return;
+        }
+
+        // TELÉFONO
+        if (contiene(
+                texto,
+                "teléfono",
+                "telefono",
+                "llamadas",
+                "llamada"
+        )) {
+
+            abrirAplicacion(
+                    new String[]{
+                            "com.google.android.dialer",
+                            "com.android.dialer"
+                    },
+                    "tel:"
+            );
+
+            return;
+        }
+
+        // MENSAJES
+        if (contiene(
+                texto,
+                "mensajes",
+                "mensaje",
+                "sms"
+        )) {
+
+            abrirAplicacion(
+                    new String[]{
+                            "com.google.android.apps.messaging",
+                            "com.android.mms"
+                    },
+                    "sms:"
+            );
+
+            return;
+        }
+
+        // PLAY STORE
+        if (contiene(
+                texto,
+                "play store",
+                "playstore",
+                "tienda"
+        )) {
+
+            abrirAplicacion(
+                    new String[]{
+                            "com.android.vending"
+                    },
+                    "https://play.google.com/store"
+            );
+
+            return;
+        }
+
+        // AJUSTES
+        if (contiene(
+                texto,
+                "ajustes",
+                "configuración",
+                "configuracion"
+        )) {
 
             try {
 
@@ -423,46 +618,60 @@ public class MainActivity extends Activity {
             return;
         }
 
-        // -------------------------
-        // COMANDO NO RECONOCIDO
-        // -------------------------
-
         statusText.setText(
-                "No conozco ese comando todavía"
+                "Todavía no conozco ese comando"
         );
     }
 
+    private boolean contiene(
+            String texto,
+            String... palabras) {
+
+        for (String palabra : palabras) {
+
+            if (texto.contains(palabra)) {
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private void abrirAplicacion(
-            String paquete,
-            String paginaWeb) {
+            String[] paquetes,
+            String fallbackUrl) {
 
-        try {
+        PackageManager packageManager =
+                getPackageManager();
 
-            PackageManager packageManager =
-                    getPackageManager();
+        for (String paquete : paquetes) {
 
-            Intent intent =
-                    packageManager.getLaunchIntentForPackage(
-                            paquete
+            try {
+
+                Intent intent =
+                        packageManager.getLaunchIntentForPackage(
+                                paquete
+                        );
+
+                if (intent != null) {
+
+                    startActivity(intent);
+
+                    statusText.setText(
+                            "Abriendo aplicación..."
                     );
 
-            if (intent != null) {
+                    return;
+                }
 
-                startActivity(intent);
-
-                statusText.setText(
-                        "Abriendo..."
-                );
-
-            } else {
-
-                abrirWeb(paginaWeb);
+            } catch (Exception ignored) {
             }
-
-        } catch (Exception e) {
-
-            abrirWeb(paginaWeb);
         }
+
+        // Solo llegamos aquí si la aplicación
+        // no está instalada o Android no permite abrirla.
+        abrirWeb(fallbackUrl);
     }
 
     private void abrirWeb(String url) {
@@ -484,7 +693,31 @@ public class MainActivity extends Activity {
         } catch (Exception e) {
 
             statusText.setText(
-                    "No pude abrir el enlace"
+                    "No pude abrir la aplicación"
+            );
+        }
+    }
+
+    private void abrirConfiguracion(
+            Uri uri,
+            String mensaje) {
+
+        try {
+
+            Intent intent =
+                    new Intent(
+                            Intent.ACTION_VIEW,
+                            uri
+                    );
+
+            startActivity(intent);
+
+            statusText.setText(mensaje);
+
+        } catch (Exception e) {
+
+            statusText.setText(
+                    "No pude abrir esa aplicación"
             );
         }
     }
