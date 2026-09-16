@@ -2,37 +2,53 @@
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Micrófono para el reconocimiento de voz -->
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-
-    <!-- Ventana flotante -->
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-
-    <!-- Servicio en primer plano -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-
-    <!-- Servicio especial para mantener la burbuja activa -->
+    <!-- Permiso para utilizar el micrófono -->
     <uses-permission
-        android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+        android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Permiso para mostrar la L sobre otras aplicaciones -->
+    <uses-permission
+        android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- Permiso para mantener LUXION funcionando -->
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!-- Tipo de servicio para reconocimiento de voz -->
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
     <queries>
 
+        <!-- Reconocimiento de voz -->
         <intent>
-            <action android:name="android.speech.RecognitionService" />
+            <action
+                android:name="android.speech.RecognitionService" />
         </intent>
 
+        <!-- Aplicaciones que LUXION puede abrir -->
         <package android:name="com.whatsapp" />
         <package android:name="com.whatsapp.w4b" />
+
         <package android:name="com.google.android.gm" />
+
+        <package android:name="com.google.android.youtube" />
+
         <package android:name="com.zhiliaoapp.musically" />
         <package android:name="com.ss.android.ugc.trill" />
-        <package android:name="com.google.android.youtube" />
-        <package android:name="com.android.chrome" />
+
         <package android:name="com.instagram.android" />
+
         <package android:name="com.facebook.katana" />
+
         <package android:name="org.telegram.messenger" />
+
         <package android:name="com.spotify.music" />
+
+        <package android:name="com.android.chrome" />
+
         <package android:name="com.google.android.apps.maps" />
+
         <package android:name="com.android.vending" />
 
     </queries>
@@ -43,13 +59,15 @@
         android:allowBackup="true"
         android:supportsRtl="true">
 
+        <!-- Pantalla principal -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
 
             <intent-filter>
 
-                <action android:name="android.intent.action.MAIN" />
+                <action
+                    android:name="android.intent.action.MAIN" />
 
                 <category
                     android:name="android.intent.category.LAUNCHER" />
@@ -58,16 +76,11 @@
 
         </activity>
 
+        <!-- Servicio de la burbuja y reconocimiento de voz -->
         <service
             android:name=".FloatingService"
             android:exported="false"
-            android:foregroundServiceType="specialUse">
-
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="LUXION floating assistant overlay" />
-
-        </service>
+            android:foregroundServiceType="microphone" />
 
     </application>
 
