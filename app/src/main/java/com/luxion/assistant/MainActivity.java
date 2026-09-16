@@ -31,6 +31,8 @@ public class MainActivity extends Activity {
     private TextView resultado;
     private Button boton;
 
+    private boolean solicitandoPermisoFlotante = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -77,15 +79,13 @@ public class MainActivity extends Activity {
                     "LUXION_ESCCHAR"
             );
 
-            /*
-             * Esperamos un momento para que la actividad
-             * esté completamente preparada antes de
-             * activar el reconocimiento.
-             */
-            boton.postDelayed(
-                    () -> escuchar(),
-                    350
-            );
+            if (boton != null) {
+
+                boton.postDelayed(
+                        () -> escuchar(),
+                        350
+                );
+            }
         }
     }
 
@@ -816,8 +816,45 @@ public class MainActivity extends Activity {
                         "Activa el permiso del botón flotante"
                 );
 
+                if (!solicitandoPermisoFlotante) {
+
+                    solicitandoPermisoFlotante = true;
+
+                    try {
+
+                        Intent intent =
+                                new Intent(
+                                        Settings
+                                                .ACTION_MANAGE_OVERLAY_PERMISSION,
+                                        Uri.parse(
+                                                "package:" +
+                                                        getPackageName()
+                                        )
+                                );
+
+                        startActivity(intent);
+
+                    } catch (Exception e) {
+
+                        try {
+
+                            Intent intent =
+                                    new Intent(
+                                            Settings
+                                                    .ACTION_MANAGE_OVERLAY_PERMISSION
+                                    );
+
+                            startActivity(intent);
+
+                        } catch (Exception ignored) {
+                        }
+                    }
+                }
+
                 return;
             }
+
+            solicitandoPermisoFlotante = false;
         }
 
         Intent servicio =
