@@ -2,48 +2,37 @@
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Permiso para reconocimiento de voz -->
+    <!-- Micrófono para el reconocimiento de voz -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
-    <!-- Permiso para mostrar el botón flotante -->
+    <!-- Ventana flotante -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
-    <!-- Permiso necesario para el servicio en primer plano -->
+    <!-- Servicio en primer plano -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
-    <!-- El servicio utiliza el micrófono -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <!-- Servicio especial para mantener la burbuja activa -->
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <queries>
 
-        <!-- Reconocimiento de voz -->
         <intent>
             <action android:name="android.speech.RecognitionService" />
         </intent>
 
-        <!-- Aplicaciones compatibles -->
         <package android:name="com.whatsapp" />
         <package android:name="com.whatsapp.w4b" />
-
         <package android:name="com.google.android.gm" />
-
         <package android:name="com.zhiliaoapp.musically" />
         <package android:name="com.ss.android.ugc.trill" />
-
         <package android:name="com.google.android.youtube" />
-
         <package android:name="com.android.chrome" />
-
         <package android:name="com.instagram.android" />
-
         <package android:name="com.facebook.katana" />
-
         <package android:name="org.telegram.messenger" />
-
         <package android:name="com.spotify.music" />
-
         <package android:name="com.google.android.apps.maps" />
-
         <package android:name="com.android.vending" />
 
     </queries>
@@ -54,7 +43,6 @@
         android:allowBackup="true"
         android:supportsRtl="true">
 
-        <!-- Pantalla principal -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -70,11 +58,16 @@
 
         </activity>
 
-        <!-- Botón flotante de LUXION -->
         <service
             android:name=".FloatingService"
             android:exported="false"
-            android:foregroundServiceType="microphone" />
+            android:foregroundServiceType="specialUse">
+
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="LUXION floating assistant overlay" />
+
+        </service>
 
     </application>
 
