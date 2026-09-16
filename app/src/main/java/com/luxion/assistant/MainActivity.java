@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -37,58 +38,120 @@ public class MainActivity extends Activity {
         crearInterfaz();
         inicializarVoz();
 
-        iniciarBotonFlotante();
-
-        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
+        if (checkSelfPermission(
+                Manifest.permission.RECORD_AUDIO)
                 != PackageManager.PERMISSION_GRANTED) {
 
             requestPermissions(
-                    new String[]{Manifest.permission.RECORD_AUDIO},
+                    new String[]{
+                            Manifest.permission.RECORD_AUDIO
+                    },
                     AUDIO_PERMISSION
             );
         }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        /*
+         * Cada vez que LUXION vuelve a primer plano,
+         * comprobamos si el permiso de ventana flotante
+         * ya fue concedido.
+         */
+        iniciarBotonFlotante();
+    }
+
     private void crearInterfaz() {
 
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout layout =
+                new LinearLayout(this);
+
+        layout.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
         layout.setGravity(Gravity.CENTER);
-        layout.setPadding(40, 40, 40, 40);
 
-        layout.setBackgroundColor(0xFF101014);
+        layout.setPadding(
+                40,
+                40,
+                40,
+                40
+        );
 
-        TextView titulo = new TextView(this);
+        layout.setBackgroundColor(
+                0xFF101014
+        );
+
+        TextView titulo =
+                new TextView(this);
+
         titulo.setText("LUXION");
         titulo.setTextSize(36);
         titulo.setTextColor(0xFFFFFFFF);
         titulo.setGravity(Gravity.CENTER);
 
-        TextView subtitulo = new TextView(this);
-        subtitulo.setText("AI Android Assistant");
+        TextView subtitulo =
+                new TextView(this);
+
+        subtitulo.setText(
+                "AI Android Assistant"
+        );
+
         subtitulo.setTextSize(16);
         subtitulo.setTextColor(0xFFAAAAAA);
         subtitulo.setGravity(Gravity.CENTER);
 
-        estado = new TextView(this);
-        estado.setText("LUXION listo");
+        estado =
+                new TextView(this);
+
+        estado.setText(
+                "LUXION listo"
+        );
+
         estado.setTextSize(18);
         estado.setTextColor(0xFFFFFFFF);
         estado.setGravity(Gravity.CENTER);
-        estado.setPadding(0, 50, 0, 20);
 
-        resultado = new TextView(this);
-        resultado.setText("Pulsa el botón y habla");
+        estado.setPadding(
+                0,
+                50,
+                0,
+                20
+        );
+
+        resultado =
+                new TextView(this);
+
+        resultado.setText(
+                "Pulsa el botón y habla"
+        );
+
         resultado.setTextSize(17);
         resultado.setTextColor(0xFFCCCCCC);
         resultado.setGravity(Gravity.CENTER);
-        resultado.setPadding(0, 20, 0, 30);
 
-        boton = new Button(this);
-        boton.setText("🎙 ACTIVAR LUXION");
+        resultado.setPadding(
+                0,
+                20,
+                0,
+                30
+        );
+
+        boton =
+                new Button(this);
+
+        boton.setText(
+                "🎙 ACTIVAR LUXION"
+        );
+
         boton.setTextSize(17);
 
-        boton.setOnClickListener(v -> escuchar());
+        boton.setOnClickListener(
+                v -> escuchar()
+        );
 
         layout.addView(titulo);
         layout.addView(subtitulo);
@@ -101,93 +164,138 @@ public class MainActivity extends Activity {
 
     private void inicializarVoz() {
 
-        textToSpeech = new TextToSpeech(this, status -> {
+        textToSpeech =
+                new TextToSpeech(
+                        this,
+                        status -> {
 
-            if (status == TextToSpeech.SUCCESS) {
+                            if (status ==
+                                    TextToSpeech.SUCCESS) {
 
-                int idioma = textToSpeech.setLanguage(
-                        new Locale("es", "ES")
+                                int idioma =
+                                        textToSpeech.setLanguage(
+                                                new Locale(
+                                                        "es",
+                                                        "ES"
+                                                )
+                                        );
+
+                                if (idioma ==
+                                        TextToSpeech.LANG_MISSING_DATA
+                                        ||
+                                        idioma ==
+                                        TextToSpeech
+                                                .LANG_NOT_SUPPORTED) {
+
+                                    textToSpeech.setLanguage(
+                                            Locale.getDefault()
+                                    );
+                                }
+                            }
+                        }
                 );
 
-                if (idioma == TextToSpeech.LANG_MISSING_DATA ||
-                        idioma == TextToSpeech.LANG_NOT_SUPPORTED) {
+        if (!SpeechRecognizer
+                .isRecognitionAvailable(this)) {
 
-                    textToSpeech.setLanguage(Locale.getDefault());
-                }
-            }
-        });
+            estado.setText(
+                    "Reconocimiento de voz no disponible"
+            );
 
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-
-            estado.setText("Reconocimiento de voz no disponible");
             return;
         }
 
         speechRecognizer =
-                SpeechRecognizer.createSpeechRecognizer(this);
+                SpeechRecognizer
+                        .createSpeechRecognizer(this);
 
         speechRecognizer.setRecognitionListener(
                 new RecognitionListener() {
 
                     @Override
-                    public void onReadyForSpeech(Bundle params) {
+                    public void onReadyForSpeech(
+                            Bundle params) {
 
-                        estado.setText("🎙 Escuchando...");
-                        boton.setText("🔴 ESCUCHANDO");
+                        estado.setText(
+                                "🎙 Escuchando..."
+                        );
+
+                        boton.setText(
+                                "🔴 ESCUCHANDO"
+                        );
                     }
 
                     @Override
                     public void onBeginningOfSpeech() {
 
-                        estado.setText("🎙 Te escucho...");
+                        estado.setText(
+                                "🎙 Te escucho..."
+                        );
                     }
 
                     @Override
-                    public void onRmsChanged(float rmsdB) {
+                    public void onRmsChanged(
+                            float rmsdB) {
                     }
 
                     @Override
-                    public void onBufferReceived(byte[] buffer) {
+                    public void onBufferReceived(
+                            byte[] buffer) {
                     }
 
                     @Override
                     public void onEndOfSpeech() {
 
-                        estado.setText("Procesando...");
-                        boton.setText("🎙 ACTIVAR LUXION");
+                        estado.setText(
+                                "Procesando..."
+                        );
+
+                        boton.setText(
+                                "🎙 ACTIVAR LUXION"
+                        );
                     }
 
                     @Override
-                    public void onError(int error) {
+                    public void onError(
+                            int error) {
 
                         estado.setText(
                                 "No entendí. Intenta nuevamente."
                         );
 
-                        boton.setText("🎙 ACTIVAR LUXION");
+                        boton.setText(
+                                "🎙 ACTIVAR LUXION"
+                        );
                     }
 
                     @Override
-                    public void onResults(Bundle results) {
+                    public void onResults(
+                            Bundle results) {
 
-                        ArrayList<String> resultados =
+                        ArrayList<String>
+                                resultados =
                                 results.getStringArrayList(
-                                        SpeechRecognizer.RESULTS_RECOGNITION
+                                        SpeechRecognizer
+                                                .RESULTS_RECOGNITION
                                 );
 
                         if (resultados != null &&
                                 !resultados.isEmpty()) {
 
-                            String texto = resultados.get(0);
+                            String texto =
+                                    resultados.get(0);
 
                             resultado.setText(
-                                    "Tú dijiste:\n" + texto
+                                    "Tú dijiste:\n" +
+                                    texto
                             );
 
                             procesarComando(texto);
                         }
 
-                        boton.setText("🎙 ACTIVAR LUXION");
+                        boton.setText(
+                                "🎙 ACTIVAR LUXION"
+                        );
                     }
 
                     @Override
@@ -206,11 +314,14 @@ public class MainActivity extends Activity {
 
     private void escuchar() {
 
-        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
+        if (checkSelfPermission(
+                Manifest.permission.RECORD_AUDIO)
                 != PackageManager.PERMISSION_GRANTED) {
 
             requestPermissions(
-                    new String[]{Manifest.permission.RECORD_AUDIO},
+                    new String[]{
+                            Manifest.permission.RECORD_AUDIO
+                    },
                     AUDIO_PERMISSION
             );
 
@@ -218,16 +329,20 @@ public class MainActivity extends Activity {
         }
 
         if (speechRecognizer == null) {
+
             inicializarVoz();
         }
 
-        Intent intent = new Intent(
-                RecognizerIntent.ACTION_RECOGNIZE_SPEECH
-        );
+        Intent intent =
+                new Intent(
+                        RecognizerIntent
+                                .ACTION_RECOGNIZE_SPEECH
+                );
 
         intent.putExtra(
                 RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                RecognizerIntent
+                        .LANGUAGE_MODEL_FREE_FORM
         );
 
         intent.putExtra(
@@ -248,18 +363,22 @@ public class MainActivity extends Activity {
         speechRecognizer.startListening(intent);
     }
 
-    private void procesarComando(String texto) {
+    private void procesarComando(
+            String texto) {
 
-        String comando = texto
-                .toLowerCase(Locale.ROOT)
-                .trim();
+        String comando =
+                texto
+                        .toLowerCase(Locale.ROOT)
+                        .trim();
 
         if (comando.contains("whatsapp") ||
                 comando.contains("wasap") ||
                 comando.contains("watsapp") ||
                 comando.contains("guasap")) {
 
-            hablar("Abriendo WhatsApp.");
+            hablar(
+                    "Abriendo WhatsApp."
+            );
 
             abrirAplicacion(
                     new String[]{
@@ -275,7 +394,9 @@ public class MainActivity extends Activity {
                 comando.contains("correo") ||
                 comando.contains("email")) {
 
-            hablar("Abriendo Gmail.");
+            hablar(
+                    "Abriendo Gmail."
+            );
 
             abrirAplicacion(
                     new String[]{
@@ -289,7 +410,9 @@ public class MainActivity extends Activity {
         if (comando.contains("youtube") ||
                 comando.contains("you tube")) {
 
-            hablar("Abriendo YouTube.");
+            hablar(
+                    "Abriendo YouTube."
+            );
 
             abrirAplicacion(
                     new String[]{
@@ -303,7 +426,9 @@ public class MainActivity extends Activity {
         if (comando.contains("tiktok") ||
                 comando.contains("tik tok")) {
 
-            hablar("Abriendo TikTok.");
+            hablar(
+                    "Abriendo TikTok."
+            );
 
             abrirAplicacion(
                     new String[]{
@@ -317,7 +442,9 @@ public class MainActivity extends Activity {
 
         if (comando.contains("instagram")) {
 
-            hablar("Abriendo Instagram.");
+            hablar(
+                    "Abriendo Instagram."
+            );
 
             abrirAplicacion(
                     new String[]{
@@ -330,7 +457,9 @@ public class MainActivity extends Activity {
 
         if (comando.contains("facebook")) {
 
-            hablar("Abriendo Facebook.");
+            hablar(
+                    "Abriendo Facebook."
+            );
 
             abrirAplicacion(
                     new String[]{
@@ -343,7 +472,9 @@ public class MainActivity extends Activity {
 
         if (comando.contains("telegram")) {
 
-            hablar("Abriendo Telegram.");
+            hablar(
+                    "Abriendo Telegram."
+            );
 
             abrirAplicacion(
                     new String[]{
@@ -356,7 +487,9 @@ public class MainActivity extends Activity {
 
         if (comando.contains("spotify")) {
 
-            hablar("Abriendo Spotify.");
+            hablar(
+                    "Abriendo Spotify."
+            );
 
             abrirAplicacion(
                     new String[]{
@@ -370,7 +503,9 @@ public class MainActivity extends Activity {
         if (comando.contains("chrome") ||
                 comando.contains("navegador")) {
 
-            hablar("Abriendo Chrome.");
+            hablar(
+                    "Abriendo Chrome."
+            );
 
             abrirAplicacion(
                     new String[]{
@@ -384,7 +519,9 @@ public class MainActivity extends Activity {
         if (comando.contains("mapas") ||
                 comando.contains("google maps")) {
 
-            hablar("Abriendo Google Maps.");
+            hablar(
+                    "Abriendo Google Maps."
+            );
 
             abrirAplicacion(
                     new String[]{
@@ -399,7 +536,9 @@ public class MainActivity extends Activity {
                 comando.contains("configuración") ||
                 comando.contains("configuracion")) {
 
-            hablar("Abriendo configuración.");
+            hablar(
+                    "Abriendo configuración."
+            );
 
             abrirConfiguracion();
 
@@ -409,7 +548,9 @@ public class MainActivity extends Activity {
         if (comando.contains("cámara") ||
                 comando.contains("camara")) {
 
-            hablar("Abriendo cámara.");
+            hablar(
+                    "Abriendo cámara."
+            );
 
             abrirCamara();
 
@@ -418,7 +559,9 @@ public class MainActivity extends Activity {
 
         if (comando.contains("contactos")) {
 
-            hablar("Abriendo contactos.");
+            hablar(
+                    "Abriendo contactos."
+            );
 
             abrirContactos();
 
@@ -428,7 +571,9 @@ public class MainActivity extends Activity {
         if (comando.contains("play store") ||
                 comando.contains("tienda")) {
 
-            hablar("Abriendo Play Store.");
+            hablar(
+                    "Abriendo Play Store."
+            );
 
             abrirAplicacion(
                     new String[]{
@@ -439,12 +584,17 @@ public class MainActivity extends Activity {
             return;
         }
 
-        hablar("Todavía no conozco ese comando.");
+        hablar(
+                "Todavía no conozco ese comando."
+        );
 
-        estado.setText("Comando no reconocido");
+        estado.setText(
+                "Comando no reconocido"
+        );
     }
 
-    private void abrirAplicacion(String[] paquetes) {
+    private void abrirAplicacion(
+            String[] paquetes) {
 
         for (String paquete : paquetes) {
 
@@ -544,7 +694,8 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void hablar(String mensaje) {
+    private void hablar(
+            String mensaje) {
 
         if (textToSpeech != null) {
 
@@ -559,7 +710,12 @@ public class MainActivity extends Activity {
 
     private void iniciarBotonFlotante() {
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        /*
+         * Android 6+ necesita permiso para
+         * dibujar sobre otras aplicaciones.
+         */
+        if (Build.VERSION.SDK_INT >=
+                Build.VERSION_CODES.M) {
 
             if (!Settings.canDrawOverlays(this)) {
 
@@ -573,7 +729,7 @@ public class MainActivity extends Activity {
                             new Intent(
                                     Settings
                                             .ACTION_MANAGE_OVERLAY_PERMISSION,
-                                    android.net.Uri.parse(
+                                    Uri.parse(
                                             "package:" +
                                             getPackageName()
                                     )
@@ -583,19 +739,28 @@ public class MainActivity extends Activity {
 
                 } catch (Exception e) {
 
-                    Intent intent =
-                            new Intent(
-                                    Settings
-                                            .ACTION_MANAGE_OVERLAY_PERMISSION
-                            );
+                    try {
 
-                    startActivity(intent);
+                        Intent intent =
+                                new Intent(
+                                        Settings
+                                                .ACTION_MANAGE_OVERLAY_PERMISSION
+                                );
+
+                        startActivity(intent);
+
+                    } catch (Exception ignored) {
+                    }
                 }
 
                 return;
             }
         }
 
+        /*
+         * El permiso ya está concedido.
+         * Ahora iniciamos el servicio.
+         */
         Intent servicio =
                 new Intent(
                         this,
@@ -607,11 +772,15 @@ public class MainActivity extends Activity {
             if (Build.VERSION.SDK_INT >=
                     Build.VERSION_CODES.O) {
 
-                startForegroundService(servicio);
+                startForegroundService(
+                        servicio
+                );
 
             } else {
 
-                startService(servicio);
+                startService(
+                        servicio
+                );
             }
 
             estado.setText(
