@@ -1,43 +1,41 @@
-name: Build LUXION
+name: Construir LUXION
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 jobs:
   build:
+
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+
+      - name: Descargar código
         uses: actions/checkout@v4
 
-      - name: Setup Java
+      - name: Configurar Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Android SDK
+      - name: Configurar Android SDK
         uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
 
-      - name: Install Android SDK
-        run: |
-          sdkmanager "platform-tools"
-          sdkmanager "platforms;android-34"
-          sdkmanager "build-tools;34.0.0"
-
-      - name: Setup Gradle
+      - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.2'
 
-      - name: Build APK
-        run: gradle assembleDebug
+      - name: Comprobar Gradle
+        run: gradle --version
 
-      - name: Upload APK
+      - name: Compilar LUXION
+        run: gradle assembleDebug --stacktrace
+
+      - name: Guardar APK
         uses: actions/upload-artifact@v4
         with:
           name: LUXION-APK
