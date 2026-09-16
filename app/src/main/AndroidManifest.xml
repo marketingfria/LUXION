@@ -2,6 +2,16 @@
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Permiso para utilizar el micrófono -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Permite encontrar el servicio de reconocimiento de voz -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
     <application
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:label="LUXION"
