@@ -156,17 +156,13 @@ public class FloatingService extends Service {
 
                         escuchando = true;
 
-                        actualizarBoton(
-                                "🎙"
-                        );
+                        actualizarBoton("🎙");
                     }
 
                     @Override
                     public void onBeginningOfSpeech() {
 
-                        actualizarBoton(
-                                "🔴"
-                        );
+                        actualizarBoton("🔴");
                     }
 
                     @Override
@@ -184,9 +180,7 @@ public class FloatingService extends Service {
 
                         escuchando = false;
 
-                        actualizarBoton(
-                                "L"
-                        );
+                        actualizarBoton("L");
                     }
 
                     @Override
@@ -195,9 +189,7 @@ public class FloatingService extends Service {
 
                         escuchando = false;
 
-                        actualizarBoton(
-                                "L"
-                        );
+                        actualizarBoton("L");
                     }
 
                     @Override
@@ -206,9 +198,7 @@ public class FloatingService extends Service {
 
                         escuchando = false;
 
-                        actualizarBoton(
-                                "L"
-                        );
+                        actualizarBoton("L");
 
                         ArrayList<String> resultados =
                                 results.getStringArrayList(
@@ -493,13 +483,89 @@ public class FloatingService extends Service {
         }
     }
 
+    /*
+     * =========================================================
+     * PROCESAMIENTO PRINCIPAL DE COMANDOS
+     * =========================================================
+     */
+
     private void procesarComando(
             String texto) {
 
+        if (texto == null) {
+            return;
+        }
+
+        String comandoOriginal =
+                texto.trim();
+
+        if (comandoOriginal.isEmpty()) {
+            return;
+        }
+
         String comando =
-                texto
+                comandoOriginal
                         .toLowerCase(Locale.ROOT)
                         .trim();
+
+        /*
+         * =====================================================
+         * BUSQUEDA LIBRE
+         * =====================================================
+         *
+         * Ejemplos:
+         *
+         * "busca pasión winne"
+         * "busca Cristiano Ronaldo"
+         * "busca noticias de criptomonedas"
+         * "busca cómo reparar mi teléfono"
+         * "busca música para entrenar"
+         *
+         * Todo lo que venga después de "busca"
+         * se utiliza como búsqueda.
+         */
+
+        if (esComandoDeBusqueda(comando)) {
+
+            String busqueda =
+                    extraerBusquedaLibre(
+                            comandoOriginal
+                    );
+
+            if (!busqueda.isEmpty()) {
+
+                hablar(
+                        "Buscando " + busqueda
+                );
+
+                boolean encontrado =
+                        YouTubeSearch.buscar(
+                                this,
+                                busqueda
+                        );
+
+                if (!encontrado) {
+
+                    hablar(
+                            "No pude realizar la búsqueda."
+                    );
+                }
+
+                return;
+            }
+
+            hablar(
+                    "Dime qué quieres buscar."
+            );
+
+            return;
+        }
+
+        /*
+         * =====================================================
+         * WHATSAPP
+         * =====================================================
+         */
 
         if (comando.contains("whatsapp") ||
                 comando.contains("wasap") ||
@@ -520,6 +586,12 @@ public class FloatingService extends Service {
             return;
         }
 
+        /*
+         * =====================================================
+         * GMAIL
+         * =====================================================
+         */
+
         if (comando.contains("gmail") ||
                 comando.contains("correo") ||
                 comando.contains("email")) {
@@ -537,6 +609,12 @@ public class FloatingService extends Service {
             return;
         }
 
+        /*
+         * =====================================================
+         * YOUTUBE
+         * =====================================================
+         */
+
         if (comando.contains("youtube") ||
                 comando.contains("you tube")) {
 
@@ -552,6 +630,12 @@ public class FloatingService extends Service {
 
             return;
         }
+
+        /*
+         * =====================================================
+         * TIKTOK
+         * =====================================================
+         */
 
         if (comando.contains("tiktok") ||
                 comando.contains("tik tok")) {
@@ -570,6 +654,12 @@ public class FloatingService extends Service {
             return;
         }
 
+        /*
+         * =====================================================
+         * INSTAGRAM
+         * =====================================================
+         */
+
         if (comando.contains("instagram")) {
 
             hablar(
@@ -584,6 +674,12 @@ public class FloatingService extends Service {
 
             return;
         }
+
+        /*
+         * =====================================================
+         * FACEBOOK
+         * =====================================================
+         */
 
         if (comando.contains("facebook")) {
 
@@ -600,6 +696,12 @@ public class FloatingService extends Service {
             return;
         }
 
+        /*
+         * =====================================================
+         * TELEGRAM
+         * =====================================================
+         */
+
         if (comando.contains("telegram")) {
 
             hablar(
@@ -615,6 +717,12 @@ public class FloatingService extends Service {
             return;
         }
 
+        /*
+         * =====================================================
+         * SPOTIFY
+         * =====================================================
+         */
+
         if (comando.contains("spotify")) {
 
             hablar(
@@ -629,6 +737,12 @@ public class FloatingService extends Service {
 
             return;
         }
+
+        /*
+         * =====================================================
+         * CHROME / NAVEGADOR
+         * =====================================================
+         */
 
         if (comando.contains("chrome") ||
                 comando.contains("navegador")) {
@@ -646,6 +760,12 @@ public class FloatingService extends Service {
             return;
         }
 
+        /*
+         * =====================================================
+         * GOOGLE MAPS
+         * =====================================================
+         */
+
         if (comando.contains("mapas") ||
                 comando.contains("google maps")) {
 
@@ -662,6 +782,12 @@ public class FloatingService extends Service {
             return;
         }
 
+        /*
+         * =====================================================
+         * AJUSTES
+         * =====================================================
+         */
+
         if (comando.contains("ajustes") ||
                 comando.contains("configuración") ||
                 comando.contains("configuracion")) {
@@ -675,6 +801,12 @@ public class FloatingService extends Service {
             return;
         }
 
+        /*
+         * =====================================================
+         * CAMARA
+         * =====================================================
+         */
+
         if (comando.contains("cámara") ||
                 comando.contains("camara")) {
 
@@ -687,6 +819,12 @@ public class FloatingService extends Service {
             return;
         }
 
+        /*
+         * =====================================================
+         * CONTACTOS
+         * =====================================================
+         */
+
         if (comando.contains("contactos")) {
 
             hablar(
@@ -697,6 +835,12 @@ public class FloatingService extends Service {
 
             return;
         }
+
+        /*
+         * =====================================================
+         * PLAY STORE
+         * =====================================================
+         */
 
         if (comando.contains("play store") ||
                 comando.contains("tienda")) {
@@ -714,15 +858,161 @@ public class FloatingService extends Service {
             return;
         }
 
+        /*
+         * =====================================================
+         * COMANDO DESCONOCIDO
+         * =====================================================
+         */
+
         hablar(
                 "Todavía no conozco ese comando."
         );
     }
 
+    /*
+     * =========================================================
+     * DETECTAR BUSQUEDA
+     * =========================================================
+     */
+
+    private boolean esComandoDeBusqueda(
+            String comando) {
+
+        if (comando == null) {
+            return false;
+        }
+
+        String valor =
+                comando
+                        .toLowerCase(Locale.ROOT)
+                        .trim();
+
+        return valor.equals("busca")
+                || valor.startsWith("busca ")
+                || valor.equals("buscar")
+                || valor.startsWith("buscar ")
+                || valor.startsWith("búscame ")
+                || valor.startsWith("buscame ")
+                || valor.startsWith("quiero buscar ")
+                || valor.startsWith("quiero que busques ")
+                || valor.startsWith("puedes buscar ")
+                || valor.startsWith("puedes buscarme ")
+                || valor.startsWith("me puedes buscar ");
+    }
+
+    /*
+     * =========================================================
+     * EXTRAER TEXTO DESPUES DE "BUSCA"
+     * =========================================================
+     */
+
+    private String extraerBusquedaLibre(
+            String texto) {
+
+        if (texto == null) {
+            return "";
+        }
+
+        String resultado =
+                texto.trim();
+
+        String minusculas =
+                resultado
+                        .toLowerCase(Locale.ROOT);
+
+        String[] comandosBusqueda = {
+
+                "quiero que busques ",
+
+                "quiero buscar ",
+
+                "me puedes buscar ",
+
+                "puedes buscarme ",
+
+                "puedes buscar ",
+
+                "búscame ",
+
+                "buscame ",
+
+                "buscarme ",
+
+                "busca ",
+
+                "buscar "
+        };
+
+        for (String prefijo :
+                comandosBusqueda) {
+
+            if (minusculas.startsWith(prefijo)) {
+
+                resultado =
+                        resultado.substring(
+                                prefijo.length()
+                        ).trim();
+
+                break;
+            }
+        }
+
+        /*
+         * Si solamente dijo "busca",
+         * no hay texto que buscar.
+         */
+
+        if (resultado
+                .equalsIgnoreCase("busca")) {
+
+            return "";
+        }
+
+        if (resultado
+                .equalsIgnoreCase("buscar")) {
+
+            return "";
+        }
+
+        /*
+         * Limpieza de signos que puede
+         * introducir el reconocimiento de voz.
+         */
+
+        resultado =
+                resultado
+                        .replace("¿", "")
+                        .replace("?", "")
+                        .replace("¡", "")
+                        .replace("!", "")
+                        .trim();
+
+        return resultado;
+    }
+
+    /*
+     * =========================================================
+     * ABRIR APLICACION
+     * =========================================================
+     */
+
     private void abrirAplicacion(
             String[] paquetes) {
 
-        for (String paquete : paquetes) {
+        if (paquetes == null ||
+                paquetes.length == 0) {
+
+            return;
+        }
+
+        for (String paquete :
+                paquetes) {
+
+            if (paquete == null ||
+                    paquete.trim().isEmpty()) {
+
+                continue;
+            }
 
             try {
 
@@ -752,6 +1042,12 @@ public class FloatingService extends Service {
         );
     }
 
+    /*
+     * =========================================================
+     * ABRIR CONFIGURACION
+     * =========================================================
+     */
+
     private void abrirConfiguracion() {
 
         try {
@@ -774,6 +1070,12 @@ public class FloatingService extends Service {
             );
         }
     }
+
+    /*
+     * =========================================================
+     * ABRIR CAMARA
+     * =========================================================
+     */
 
     private void abrirCamara() {
 
@@ -798,6 +1100,12 @@ public class FloatingService extends Service {
             );
         }
     }
+
+    /*
+     * =========================================================
+     * ABRIR CONTACTOS
+     * =========================================================
+     */
 
     private void abrirContactos() {
 
@@ -824,10 +1132,18 @@ public class FloatingService extends Service {
         }
     }
 
+    /*
+     * =========================================================
+     * RESPUESTA DE VOZ
+     * =========================================================
+     */
+
     private void hablar(
             String mensaje) {
 
-        if (textToSpeech != null) {
+        if (textToSpeech != null &&
+                mensaje != null &&
+                !mensaje.trim().isEmpty()) {
 
             textToSpeech.speak(
                     mensaje,
@@ -838,13 +1154,21 @@ public class FloatingService extends Service {
         }
     }
 
+    /*
+     * =========================================================
+     * DESTRUIR SERVICIO
+     * =========================================================
+     */
+
     @Override
     public void onDestroy() {
 
         if (speechRecognizer != null) {
 
             try {
+
                 speechRecognizer.cancel();
+
             } catch (Exception ignored) {
             }
 
@@ -877,8 +1201,15 @@ public class FloatingService extends Service {
         super.onDestroy();
     }
 
+    /*
+     * =========================================================
+     * BIND
+     * =========================================================
+     */
+
     @Override
-    public IBinder onBind(Intent intent) {
+    public IBinder onBind(
+            Intent intent) {
 
         return null;
     }
