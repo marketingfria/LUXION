@@ -9,7 +9,9 @@ import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.provider.Settings;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
@@ -21,6 +23,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Locale;
 
@@ -45,6 +48,24 @@ public class FloatingService extends Service {
     private boolean seEstaMoviendo = false;
     private boolean escuchando = false;
 
+    /*
+     * =========================================================
+     * ESTADO DE LUXION
+     * =========================================================
+     */
+
+    private boolean esperandoLuxion = false;
+    private boolean escuchandoComando = false;
+
+    private final Handler handler =
+            new Handler(Looper.getMainLooper());
+
+    /*
+     * =========================================================
+     * CREAR SERVICIO
+     * =========================================================
+     */
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -57,7 +78,27 @@ public class FloatingService extends Service {
                 (WindowManager) getSystemService(WINDOW_SERVICE);
 
         crearBotonFlotante();
+
+        /*
+         * Esperamos un momento antes de comenzar
+         * la primera detección de "Luxion".
+         */
+        handler.postDelayed(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        iniciarEsperaLuxion();
+                    }
+                },
+                1000
+        );
     }
+
+    /*
+     * =========================================================
+     * NOTIFICACION
+     * =========================================================
+     */
 
     private void crearCanalNotificacion() {
 
@@ -75,13 +116,21 @@ public class FloatingService extends Service {
             );
 
             NotificationManager manager =
-                    getSystemService(NotificationManager.class);
+                    getSystemService(
+                            NotificationManager.class
+                    );
 
             if (manager != null) {
                 manager.createNotificationChannel(channel);
             }
         }
     }
+
+    /*
+     * =========================================================
+     * SERVICIO FOREGROUND
+     * =========================================================
+     */
 
     private void iniciarServicioForeground() {
 
@@ -104,7 +153,7 @@ public class FloatingService extends Service {
         builder
                 .setContentTitle("LUXION activo")
                 .setContentText(
-                        "Toca la L para hablar con LUXION"
+                        "Di Luxion o toca la L para hablar"
                 )
                 .setSmallIcon(
                         android.R.drawable.ic_btn_speak_now
@@ -116,6 +165,12 @@ public class FloatingService extends Service {
                 builder.build()
         );
     }
+
+    /*
+     * =========================================================
+     * VOZ
+     * =========================================================
+     */
 
     private void inicializarVoz() {
 
@@ -156,13 +211,21 @@ public class FloatingService extends Service {
 
                         escuchando = true;
 
-                        actualizarBoton("🎙");
+                        if (esperandoLuxion) {
+                            actualizarBoton("L");
+                        } else {
+                            actualizarBoton("🎙");
+                        }
                     }
 
                     @Override
                     public void onBeginningOfSpeech() {
 
-                        actualizarBoton("🔴");
+                        if (esperandoLuxion) {
+                            actualizarBoton("L");
+                        } else {
+                            actualizarBoton("🔴");
+                        }
                     }
 
                     @Override
@@ -180,7 +243,9 @@ public class FloatingService extends Service {
 
                         escuchando = false;
 
-                        actualizarBoton("L");
+                        if (!esperandoLuxion) {
+                            actualizarBoton("L");
+                        }
                     }
 
                     @Override
@@ -190,6 +255,14 @@ public class FloatingService extends Service {
                         escuchando = false;
 
                         actualizarBoton("L");
+
+                        /*
+                         * Si estamos esperando "Luxion",
+                         * volvemos a intentarlo.
+                         */
+                        if (esperandoLuxion) {
+                            programarEsperaLuxion(1000);
+                        }
                     }
 
                     @Override
@@ -198,22 +271,102 @@ public class FloatingService extends Service {
 
                         escuchando = false;
 
-                        actualizarBoton("L");
-
                         ArrayList<String> resultados =
                                 results.getStringArrayList(
                                         SpeechRecognizer
                                                 .RESULTS_RECOGNITION
                                 );
 
-                        if (resultados != null &&
-                                !resultados.isEmpty()) {
+                        if (resultados == null ||
+                                resultados.isEmpty()) {
 
-                            String texto =
-                                    resultados.get(0);
+                            if (esperandoLuxion) {
+                                programarEsperaLuxion(700);
+                            }
 
-                            procesarComando(texto);
+                            return;
                         }
+
+                        String texto =
+                                resultados.get(0);
+
+                        /*
+                         * =================================================
+                         * MODO ESPERA DE "LUXION"
+                         * =================================================
+                         */
+
+                        if (esperandoLuxion) {
+
+                            String resto =
+                                    detectarLuxion(texto);
+
+                            /*
+                             * No dijo Luxion.
+                             */
+                            if (resto == null) {
+
+                                programarEsperaLuxion(700);
+                                return;
+                            }
+
+                            /*
+                             * LUXION FUE DETECTADO.
+                             */
+                            esperandoLuxion = false;
+                            escuchandoComando = true;
+
+                            actualizarBoton("⚡");
+
+                            /*
+                             * Caso:
+                             *
+                             * "Luxion abre YouTube"
+                             *
+                             * Se ejecuta directamente.
+                             */
+                            if (!resto.trim().isEmpty()) {
+
+                                procesarComando(resto);
+
+                                programarEsperaLuxion(1800);
+
+                                return;
+                            }
+
+                            /*
+                             * Caso:
+                             *
+                             * "Luxion"
+                             *
+                             * Ahora esperamos el comando.
+                             */
+                            hablar(
+                                    "Te escucho."
+                            );
+
+                            programarComando(1200);
+
+                            return;
+                        }
+
+                        /*
+                         * =================================================
+                         * MODO COMANDO
+                         * =================================================
+                         */
+
+                        escuchandoComando = false;
+
+                        actualizarBoton("L");
+
+                        procesarComando(texto);
+
+                        /*
+                         * Después del comando volvemos a esperar
+                         * la palabra "Luxion".
+                         */
+                        programarEsperaLuxion(1800);
                     }
 
                     @Override
@@ -230,6 +383,12 @@ public class FloatingService extends Service {
         );
     }
 
+    /*
+     * =========================================================
+     * ACTUALIZAR BOTON
+     * =========================================================
+     */
+
     private void actualizarBoton(
             String texto) {
 
@@ -244,6 +403,12 @@ public class FloatingService extends Service {
         } catch (Exception ignored) {
         }
     }
+
+    /*
+     * =========================================================
+     * CREAR BOTON FLOTANTE
+     * =========================================================
+     */
 
     private void crearBotonFlotante() {
 
@@ -261,7 +426,9 @@ public class FloatingService extends Service {
                 new TextView(this);
 
         floatingButton.setText("L");
+
         floatingButton.setTextSize(22);
+
         floatingButton.setTextColor(
                 Color.WHITE
         );
@@ -327,6 +494,12 @@ public class FloatingService extends Service {
 
         configurarMovimientoYToque();
     }
+
+    /*
+     * =========================================================
+     * MOVIMIENTO Y TOQUE
+     * =========================================================
+     */
 
     private void configurarMovimientoYToque() {
 
@@ -410,6 +583,12 @@ public class FloatingService extends Service {
         );
     }
 
+    /*
+     * =========================================================
+     * ACTIVACION MANUAL DEL MICROFONO
+     * =========================================================
+     */
+
     private void activarMicrofono() {
 
         if (speechRecognizer == null) {
@@ -426,6 +605,13 @@ public class FloatingService extends Service {
             return;
         }
 
+        /*
+         * El botón cancela el modo de espera de "Luxion"
+         * y pasa directamente al modo comando.
+         */
+        esperandoLuxion = false;
+        escuchandoComando = true;
+
         if (escuchando) {
 
             try {
@@ -436,9 +622,86 @@ public class FloatingService extends Service {
             }
 
             escuchando = false;
+        }
 
-            actualizarBoton("L");
+        actualizarBoton("🎙");
 
+        programarComando(250);
+    }
+
+    /*
+     * =========================================================
+     * ESPERAR "LUXION"
+     * =========================================================
+     */
+
+    private void iniciarEsperaLuxion() {
+
+        if (speechRecognizer == null) {
+            return;
+        }
+
+        if (escuchando) {
+            return;
+        }
+
+        esperandoLuxion = true;
+        escuchandoComando = false;
+
+        iniciarReconocimiento();
+    }
+
+    private void programarEsperaLuxion(
+            long milisegundos) {
+
+        handler.postDelayed(
+                new Runnable() {
+
+                    @Override
+                    public void run() {
+
+                        iniciarEsperaLuxion();
+                    }
+                },
+                milisegundos
+        );
+    }
+
+    /*
+     * =========================================================
+     * PROGRAMAR COMANDO
+     * =========================================================
+     */
+
+    private void programarComando(
+            long milisegundos) {
+
+        handler.postDelayed(
+                new Runnable() {
+
+                    @Override
+                    public void run() {
+
+                        iniciarReconocimiento();
+                    }
+                },
+                milisegundos
+        );
+    }
+
+    /*
+     * =========================================================
+     * INICIAR RECONOCIMIENTO
+     * =========================================================
+     */
+
+    private void iniciarReconocimiento() {
+
+        if (speechRecognizer == null) {
+            return;
+        }
+
+        if (escuchando) {
             return;
         }
 
@@ -475,12 +738,118 @@ public class FloatingService extends Service {
                     intent
             );
 
-        } catch (Exception e) {
+        } catch (Exception ignored) {
 
             escuchando = false;
 
-            actualizarBoton("L");
+            if (esperandoLuxion) {
+
+                programarEsperaLuxion(1200);
+            }
         }
+    }
+
+    /*
+     * =========================================================
+     * DETECTAR PALABRA "LUXION"
+     * =========================================================
+     */
+
+    private String detectarLuxion(
+            String texto) {
+
+        if (texto == null) {
+            return null;
+        }
+
+        String original =
+                texto.trim();
+
+        if (original.isEmpty()) {
+            return null;
+        }
+
+        /*
+         * Eliminamos acentos para que:
+         *
+         * Luxion
+         * Luxión
+         *
+         * sean tratados igual.
+         */
+        String normalizado =
+                Normalizer.normalize(
+                        original,
+                        Normalizer.Form.NFD
+                )
+                        .replaceAll(
+                                "\\p{M}",
+                                ""
+                        )
+                        .toLowerCase(
+                                Locale.ROOT
+                        )
+                        .trim();
+
+        String palabra =
+                "luxion";
+
+        int posicion =
+                normalizado.indexOf(
+                        palabra
+                );
+
+        if (posicion < 0) {
+
+            return null;
+        }
+
+        /*
+         * Comprobamos que "luxion" sea una palabra
+         * independiente y no parte de otra palabra.
+         */
+        boolean limiteAnterior =
+                posicion == 0 ||
+                        !Character.isLetterOrDigit(
+                                normalizado.charAt(
+                                        posicion - 1
+                                )
+                        );
+
+        int finalPalabra =
+                posicion + palabra.length();
+
+        boolean limitePosterior =
+                finalPalabra >=
+                        normalizado.length() ||
+                        !Character.isLetterOrDigit(
+                                normalizado.charAt(
+                                        finalPalabra
+                                )
+                        );
+
+        if (!limiteAnterior ||
+                !limitePosterior) {
+
+            return null;
+        }
+
+        /*
+         * Extraemos todo lo que venga después
+         * de "Luxion".
+         */
+        String resto =
+                original.substring(
+                        finalPalabra
+                ).trim();
+
+        resto =
+                resto.replaceFirst(
+                        "^[,;:.!?¡¿\\s]+",
+                        ""
+                ).trim();
+
+        return resto;
     }
 
     /*
@@ -510,19 +879,8 @@ public class FloatingService extends Service {
 
         /*
          * =====================================================
-         * BUSQUEDA LIBRE
+         * BUSQUEDA LIBRE EN YOUTUBE
          * =====================================================
-         *
-         * Ejemplos:
-         *
-         * "busca pasión winne"
-         * "busca Cristiano Ronaldo"
-         * "busca noticias de criptomonedas"
-         * "busca cómo reparar mi teléfono"
-         * "busca música para entrenar"
-         *
-         * Todo lo que venga después de "busca"
-         * se utiliza como búsqueda.
          */
 
         if (esComandoDeBusqueda(comando)) {
@@ -902,7 +1260,7 @@ public class FloatingService extends Service {
 
     /*
      * =========================================================
-     * EXTRAER TEXTO DESPUES DE "BUSCA"
+     * EXTRAER BUSQUEDA
      * =========================================================
      */
 
@@ -946,7 +1304,8 @@ public class FloatingService extends Service {
         for (String prefijo :
                 comandosBusqueda) {
 
-            if (minusculas.startsWith(prefijo)) {
+            if (minusculas.startsWith(
+                    prefijo)) {
 
                 resultado =
                         resultado.substring(
@@ -956,11 +1315,6 @@ public class FloatingService extends Service {
                 break;
             }
         }
-
-        /*
-         * Si solamente dijo "busca",
-         * no hay texto que buscar.
-         */
 
         if (resultado
                 .equalsIgnoreCase("busca")) {
@@ -973,11 +1327,6 @@ public class FloatingService extends Service {
 
             return "";
         }
-
-        /*
-         * Limpieza de signos que puede
-         * introducir el reconocimiento de voz.
-         */
 
         resultado =
                 resultado
@@ -1141,9 +1490,30 @@ public class FloatingService extends Service {
     private void hablar(
             String mensaje) {
 
-        if (textToSpeech != null &&
-                mensaje != null &&
-                !mensaje.trim().isEmpty()) {
+        if (mensaje == null ||
+                mensaje.trim().isEmpty()) {
+
+            return;
+        }
+
+        /*
+         * Cancelamos cualquier escucha activa para evitar
+         * que LUXION pueda escucharse a sí misma.
+         */
+        if (speechRecognizer != null &&
+                escuchando) {
+
+            try {
+
+                speechRecognizer.cancel();
+
+            } catch (Exception ignored) {
+            }
+
+            escuchando = false;
+        }
+
+        if (textToSpeech != null) {
 
             textToSpeech.speak(
                     mensaje,
@@ -1163,6 +1533,8 @@ public class FloatingService extends Service {
     @Override
     public void onDestroy() {
 
+        handler.removeCallbacksAndMessages(null);
+
         if (speechRecognizer != null) {
 
             try {
@@ -1173,13 +1545,16 @@ public class FloatingService extends Service {
             }
 
             speechRecognizer.destroy();
+
             speechRecognizer = null;
         }
 
         if (textToSpeech != null) {
 
             textToSpeech.stop();
+
             textToSpeech.shutdown();
+
             textToSpeech = null;
         }
 
