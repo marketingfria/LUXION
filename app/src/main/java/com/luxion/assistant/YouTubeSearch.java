@@ -10,156 +10,188 @@ import java.util.Random;
 public final class YouTubeSearch {
 
     private YouTubeSearch() {
-        // Evita crear objetos de esta clase.
+        // Clase de utilidad.
     }
 
     /**
-     * Procesa una orden relacionada con YouTube.
+     * Recibe una petición y la convierte en una búsqueda de YouTube.
      *
      * Ejemplos:
-     * "busca música"
-     * "busca reguetón"
-     * "busca GTA 5"
-     * "busca videos de animales"
-     * "quiero ver fútbol"
-     * "pon música"
-     * "abre youtube"
+     *
+     * "busca GTA 6 en YouTube"
+     * "quiero ver videos de gatos"
+     * "quiero escuchar música de Bad Bunny"
+     * "búscame un tutorial de Android"
+     * "pon canciones de salsa"
      */
-    public static boolean ejecutar(Context context, String texto) {
+    public static boolean buscar(Context context, String peticion) {
 
-        if (context == null || texto == null) {
+        if (context == null || peticion == null) {
             return false;
         }
 
-        String comando = normalizar(texto);
+        String texto = limpiar(peticion);
 
-        if (comando.isEmpty()) {
+        if (texto.isEmpty()) {
             return false;
         }
 
-        // Detectar si la orden está relacionada con YouTube.
-        if (!esOrdenYouTube(comando)) {
-            return false;
+        String busqueda = extraerBusqueda(texto);
+
+        if (busqueda.isEmpty()) {
+            busqueda = categoriaAleatoria();
         }
 
-        String busqueda = obtenerBusqueda(comando);
-
-        abrirYouTube(context, busqueda);
-
-        return true;
+        return abrirYouTube(context, busqueda);
     }
 
     /**
-     * Determina si el usuario está hablando de YouTube.
+     * Extrae el tema que realmente quiere buscar el usuario.
+     *
+     * No depende de un tema concreto.
      */
-    private static boolean esOrdenYouTube(String comando) {
+    private static String extraerBusqueda(String texto) {
 
-        return comando.contains("youtube")
-                || comando.contains("busca")
-                || comando.contains("buscar")
-                || comando.contains("buscame")
-                || comando.contains("búscame")
-                || comando.contains("pon ")
-                || comando.startsWith("poner ")
-                || comando.contains("quiero ver")
-                || comando.contains("quiero escuchar")
-                || comando.contains("videos")
-                || comando.contains("video");
-    }
+        String resultado = texto;
 
-    /**
-     * Obtiene aquello que el usuario quiere buscar.
-     */
-    private static String obtenerBusqueda(String comando) {
+        // Elimina "youtube".
+        resultado = reemplazar(resultado, "youtube");
 
-        String texto = comando;
-
-        // Elimina la palabra YouTube.
-        texto = texto.replace("youtube", " ");
-
-        // Frases que indican una búsqueda.
-        String[] palabras = {
-                "busca",
-                "buscar",
+        // Frases comunes que indican una búsqueda.
+        String[] frases = {
+                "quiero que busques",
+                "quiero buscar",
+                "quiero que busque",
+                "me puedes buscar",
+                "puedes buscar",
+                "puedes buscarme",
                 "buscame",
                 "búscame",
-                "quiero buscar",
+                "buscarme",
+                "busca",
+                "buscar",
                 "quiero ver",
                 "quiero escuchar",
+                "quiero mirar",
+                "me gustaría ver",
+                "me gustaria ver",
+                "me gustaría escuchar",
+                "me gustaria escuchar",
+                "ponme",
                 "pon",
-                "poner",
                 "muéstrame",
                 "muestrame"
         };
 
-        for (String palabra : palabras) {
-            texto = texto.replace(palabra, " ");
+        for (String frase : frases) {
+            resultado = reemplazar(resultado, frase);
         }
 
-        // Limpieza de palabras innecesarias.
-        texto = texto.replace("en ", " ")
-                .replace("videos de ", " ")
-                .replace("video de ", " ")
-                .replace("videos ", " ")
-                .replace("video ", " ")
-                .replace("algo de ", " ")
-                .replace("alguna ", " ")
-                .replace("algún ", " ")
-                .replace("algun ", " ")
-                .replace("un video ", " ")
-                .replace("un vídeo ", " ");
+        // Elimina conectores que no forman parte de la búsqueda.
+        String[] conectores = {
+                "en ",
+                "por favor",
+                "porfavor",
+                "un video de",
+                "un vídeo de",
+                "videos de",
+                "vídeos de",
+                "video de",
+                "vídeo de",
+                "videos sobre",
+                "vídeos sobre",
+                "video sobre",
+                "vídeo sobre",
+                "algo sobre",
+                "algo de",
+                "una canción de",
+                "una cancion de",
+                "canciones de"
+        };
 
-        texto = limpiarEspacios(texto);
+        for (String conector : conectores) {
+            resultado = reemplazar(resultado, conector);
+        }
+
+        resultado = limpiar(resultado);
+
+        // Evita búsquedas sin contenido.
+        if (esVacio(resultado)) {
+            return "";
+        }
+
+        return resultado;
+    }
+
+    /**
+     * Abre directamente los resultados de YouTube.
+     */
+    private static boolean abrirYouTube(Context context, String busqueda) {
+
+        try {
+
+            String url =
+                    "https://www.youtube.com/results?search_query="
+                            + Uri.encode(busqueda);
+
+            /*
+             * Primero intentamos abrir la aplicación oficial.
+             */
+            Intent youtube = new Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse(url)
+            );
+
+            youtube.setPackage("com.google.android.youtube");
+
+            youtube.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+            context.startActivity(youtube);
+
+            return true;
+
+        } catch (Exception ignored) {
+            /*
+             * YouTube no está instalado o no puede abrirse
+             * mediante el Intent específico.
+             */
+        }
 
         /*
-         * Si el usuario solamente dijo:
-         *
-         * "busca"
-         * "busca un video"
-         * "pon algo"
-         * "quiero ver videos"
-         *
-         * elegimos una categoría automáticamente.
+         * Como alternativa, abrimos YouTube mediante
+         * el navegador.
          */
-        if (esBusquedaVacia(texto)) {
-            return categoriaAleatoria();
-        }
+        try {
 
-        return texto;
-    }
+            String url =
+                    "https://www.youtube.com/results?search_query="
+                            + Uri.encode(busqueda);
 
-    /**
-     * Detecta si realmente no se especificó qué buscar.
-     */
-    private static boolean esBusquedaVacia(String texto) {
+            Intent navegador = new Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse(url)
+            );
 
-        if (texto == null || texto.trim().isEmpty()) {
+            navegador.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+            context.startActivity(navegador);
+
             return true;
+
+        } catch (Exception ignored) {
+            return false;
         }
-
-        String limpio = texto.toLowerCase(Locale.ROOT).trim();
-
-        return limpio.equals("un")
-                || limpio.equals("una")
-                || limpio.equals("algo")
-                || limpio.equals("algo ")
-                || limpio.equals("video")
-                || limpio.equals("videos")
-                || limpio.equals("vídeo")
-                || limpio.equals("vídeos")
-                || limpio.equals("quiero")
-                || limpio.equals("ver")
-                || limpio.equals("escuchar");
     }
 
     /**
-     * Selecciona una categoría cuando el usuario no especifica ninguna.
+     * Si el usuario no especifica ningún tema,
+     * LUXION puede elegir uno automáticamente.
      */
     private static String categoriaAleatoria() {
 
         String[] categorias = {
 
-                "música popular",
+                "música nueva",
                 "música para entrenar",
                 "reguetón",
                 "salsa",
@@ -167,114 +199,95 @@ public final class YouTubeSearch {
                 "rock",
                 "electrónica",
                 "hip hop",
-                "videos divertidos",
-                "humor",
-                "animales divertidos",
-                "fútbol",
-                "baloncesto",
-                "videojuegos",
+
+                "GTA 6",
                 "GTA 5",
                 "Minecraft",
+                "videojuegos",
+
+                "fútbol",
+                "baloncesto",
+                "deportes",
+
+                "humor",
+                "videos divertidos",
+                "animales",
+                "curiosidades",
+
                 "tecnología",
                 "Android",
-                "curiosidades",
-                "ciencia",
+                "inteligencia artificial",
+
                 "viajes",
                 "naturaleza",
-                "películas",
-                "trailers de películas",
                 "documentales",
-                "recetas fáciles"
+
+                "recetas",
+                "cocina"
         };
 
         Random random = new Random();
 
-        return categorias[random.nextInt(categorias.length)];
+        return categorias[
+                random.nextInt(categorias.length)
+        ];
     }
 
     /**
-     * Abre la aplicación de YouTube si está instalada.
-     * Si no está instalada, abre YouTube en el navegador.
+     * Comprueba si no existe una búsqueda real.
      */
-    private static void abrirYouTube(Context context, String busqueda) {
+    private static boolean esVacio(String texto) {
 
-        String consulta = busqueda == null
-                ? ""
-                : busqueda.trim();
-
-        try {
-
-            /*
-             * Intent específico para la aplicación YouTube.
-             */
-            Intent appIntent = new Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.parse(
-                            "https://www.youtube.com/results?search_query="
-                                    + Uri.encode(consulta)
-                    )
-            );
-
-            appIntent.setPackage("com.google.android.youtube");
-
-            appIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
-            context.startActivity(appIntent);
-
-            return;
-
-        } catch (Exception ignored) {
-            // YouTube no está disponible.
+        if (texto == null || texto.trim().isEmpty()) {
+            return true;
         }
 
-        /*
-         * Si no existe la aplicación YouTube,
-         * utilizamos el navegador.
-         */
-        try {
+        String valor = texto.toLowerCase(Locale.ROOT).trim();
 
-            Intent navegador = new Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.parse(
-                            "https://www.youtube.com/results?search_query="
-                                    + Uri.encode(consulta)
-                    )
-            );
-
-            navegador.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
-            context.startActivity(navegador);
-
-        } catch (Exception ignored) {
-            // No se pudo abrir YouTube ni navegador.
-        }
+        return valor.equals("algo")
+                || valor.equals("un video")
+                || valor.equals("un vídeo")
+                || valor.equals("videos")
+                || valor.equals("vídeos")
+                || valor.equals("video")
+                || valor.equals("vídeo")
+                || valor.equals("cualquier cosa")
+                || valor.equals("cualquier cosa en youtube");
     }
 
     /**
-     * Normaliza el texto reconocido por el micrófono.
+     * Reemplazo seguro ignorando mayúsculas/minúsculas.
      */
-    private static String normalizar(String texto) {
+    private static String reemplazar(
+            String texto,
+            String objetivo
+    ) {
 
-        return limpiarEspacios(
-                texto.toLowerCase(Locale.ROOT)
-                        .replace("¿", " ")
-                        .replace("?", " ")
-                        .replace("¡", " ")
-                        .replace("!", " ")
-                        .trim()
+        return texto.replace(
+                objetivo.toLowerCase(Locale.ROOT),
+                " "
         );
     }
 
     /**
-     * Elimina espacios repetidos.
+     * Limpia espacios y signos innecesarios.
      */
-    private static String limpiarEspacios(String texto) {
+    private static String limpiar(String texto) {
 
         if (texto == null) {
             return "";
         }
 
         return texto
+                .toLowerCase(Locale.ROOT)
+                .replace("¿", " ")
+                .replace("?", " ")
+                .replace("¡", " ")
+                .replace("!", " ")
+                .replace(",", " ")
+                .replace(".", " ")
+                .replace(";", " ")
+                .replace(":", " ")
                 .replaceAll("\\s+", " ")
                 .trim();
     }
